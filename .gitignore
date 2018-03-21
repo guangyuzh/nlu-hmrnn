@@ -1,0 +1,6 @@
+*.txt
+*.pyc
+checkpoint
+text8.*
+*.out
+*.log
