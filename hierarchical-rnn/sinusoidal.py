@@ -1,3 +1,8 @@
+import matplotlib
+matplotlib.use('Agg')
+
+import numpy as np
+import matplotlib.pyplot as plt
 from hmlstm import HMLSTMNetwork, convert_to_batches, plot_indicators
 
 network = HMLSTMNetwork(input_size=1, task='regression', hidden_state_sizes=30,
@@ -23,3 +28,4 @@ boundaries = network.predict_boundaries(batches_in[-1], variable_path='./sinusoi
 
 # visualize boundaries
 plot_indicators(batches_out[-1][0], predictions[0], indicators=boundaries[0])
+plt.savefig('result.png')
