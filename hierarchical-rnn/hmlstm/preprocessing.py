@@ -28,6 +28,39 @@ def load_text(text_path, truncate_len, step_size, batch_size, num_chars):
 
     return signals
 
+def load_cbt(text_path, num_chars=None):
+    """
+    Read CBT dataset and return a list of tuples in the form of
+    (context, query, candidates, answer).
+    """
+    with open(text_path, 'r') as f:
+        text = f.read(num_chars)
+
+    signals = []
+    # parsing sample
+    samples = text.split("\n\n")[:-1] # ignore the last '\n'
+    for sample in samples:
+        lines = sample.split("\n")
+        if len(lines) != 21:
+            raise ValueError("A sample in CBT has %d lines (expected 21), sample: \n%s" %\
+                    (len(lines), sample))
+        context = ""
+        for i in range(20):
+            offset = (i + 1) // 10 + 2
+            context += lines[i][offset:] + ' '
+
+        # parsing query, candidates, answer
+        query_ans_cand = lines[20].replace("\t\t", "\t").split("\t")
+        if len(query_ans_cand) != 3:
+            raise ValueError("Query line parsing error: %s" % lines[20])
+        query = query_ans_cand[0][3:] # ignore the '21 ' in the begining
+        answer = query_ans_cand[1]
+        candidates = query_ans_cand[2].split('|')
+        if len(candidates) != 10:
+            raise ValueError("Invalid candidates number %d, expected 10." % len(candidates))
+        signals.append((context, query, candidates, answer))
+
+    return signals
 
 def one_hot_encode(text):
     out = np.zeros((len(text), 27))
