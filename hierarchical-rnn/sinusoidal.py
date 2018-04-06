@@ -3,9 +3,9 @@ matplotlib.use('Agg')
 
 import numpy as np
 import matplotlib.pyplot as plt
-from hmlstm import HMLSTMNetwork, convert_to_batches, plot_indicators
+from hmlstm import HMLSTMNetworkQa, convert_to_batches, plot_indicators
 
-network = HMLSTMNetwork(input_size=1, task='regression', hidden_state_sizes=30,
+network = HMLSTMNetworkQa(input_size=1, task='regression', hidden_state_sizes=30,
                        embed_size=50, out_hidden_size=30, num_layers=2)
                        
 # generate signals
