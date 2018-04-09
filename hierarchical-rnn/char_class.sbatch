@@ -2,7 +2,8 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --time=48:00:00
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
+#SBATCH --partition=p100_4
 #SBATCH --mem=100GB
 #SBATCH --job-name=Char_class
 #SBATCH --mail-type=END

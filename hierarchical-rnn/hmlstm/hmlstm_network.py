@@ -82,7 +82,7 @@ class HMLSTMNetwork(object):
         self.batch_out = tf.placeholder(
             tf.float32, shape=batch_out_shape, name='batch_out')
 
-        self._optimizer = tf.train.AdamOptimizer(1e-3)
+        self._optimizer = tf.train.AdamOptimizer(1e-4)
         self._initialize_output_variables()
         self._initialize_gate_variables()
         self._initialize_embedding_variables()
@@ -433,7 +433,7 @@ class HMLSTMNetwork(object):
         batch_out_size = (batch.shape[1], batch.shape[0], self._output_size)
         _indicators = self._session.run(indicators, {
             self.batch_in: np.swapaxes(batch, 0, 1),
-            self.batch_out: np.zeros(batch_out_size)
+            self.batch_out: np.zeros(batch_out_size),
         })
 
         return np.array(_indicators)

@@ -4,3 +4,9 @@ checkpoint
 text8.*
 *.out
 *.log
+*.data-00000-of-00001
+*.index
+*.meta
+*.png
+
+corpora/treebank/
