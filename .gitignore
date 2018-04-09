@@ -8,5 +8,6 @@ text8.*
 *.index
 *.meta
 *.png
+.idea/
 
 corpora/treebank/
