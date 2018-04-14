@@ -21,15 +21,17 @@ class Unbuffered(object):
 
 sys.stdout = Unbuffered(sys.stdout)
 
+CAND_NUM = 10 # candidates number
 
 class HMLSTMNetworkQa(object):
     def __init__(self,
                  input_size=1,
-                 output_size=1,
+                 output_size=CAND_NUM,
                  num_layers=3,
                  hidden_state_sizes=50,
                  out_hidden_size=100,
                  embed_size=100,
+                 vocab_size=55000,
                  task='regression'):
         """
         HMLSTMNetworkQa is a class representing hierarchical multiscale
@@ -60,6 +62,7 @@ class HMLSTMNetworkQa(object):
         self._graph = None
         self._task = task
         self._output_size = output_size
+        self._vocab_size = vocab_size
 
         if type(hidden_state_sizes) is list \
             and len(hidden_state_sizes) != num_layers:
@@ -76,17 +79,34 @@ class HMLSTMNetworkQa(object):
         elif task == 'regression':
             self._loss_function = lambda logits, labels: tf.square((logits - labels))
 
-        batch_in_shape = (None, None, self._input_size)
-        batch_out_shape = (None, None, self._output_size)
-        self.batch_in = tf.placeholder(
-            tf.float32, shape=batch_in_shape, name='batch_in')
+        # batch_in_shape = (None, None, self._input_size)
+        # batch_out_shape = (None, None, self._output_size)
+        # self.batch_in = tf.placeholder(
+        #     tf.float32, shape=batch_in_shape, name='batch_in')
+
+
+        batch_qc_shape = (None, None)                # [num_of_timesteps, Batch_size]
+        batch_cand_shape = (None, self._output_size) # [Batch_size, output_size]
+        batch_out_shape = (None, self._output_size)  # [Batch_size, output_size]
+
+        self.batch_qc = tf.placeholder(
+            tf.int32, shape=batch_qc_shape, name='batch_qc')
+        self.batch_cand = tf.placeholder(
+            tf.int32, shape=batch_cand_shape, name='batch_cand')
         self.batch_out = tf.placeholder(
             tf.float32, shape=batch_out_shape, name='batch_out')
 
         self._optimizer = tf.train.AdamOptimizer(1e-3)
+
+        self._initialize_input_module_variables()
         self._initialize_output_variables()
         self._initialize_gate_variables()
         self._initialize_embedding_variables()
+
+    def _initialize_input_module_variables(self):
+        with vs.variable_scope('input_module_vars'):
+            embed_table = vs.get_variable(
+                'embed_table', shape=[self._vocab_size, self._embed_size])
 
     def _initialize_gate_variables(self):
         with vs.variable_scope('gates_vars'):
@@ -127,6 +147,18 @@ class HMLSTMNetworkQa(object):
         saver = tf.train.Saver()
         print('saving variables...')
         saver.save(self._session, path)
+
+    def input_module(self, batch_text):
+        """
+        Convert word id to word embedding.
+
+        batch_text: [B, #words], dtype=int32 (texts represented in the form of word ids)
+        return: [B, #words, embedding], dtype=float32
+        """
+        with vs.variable_scope('input_module_vars', reuse=True):
+            embed_table = vs.get_variable('embed_table')
+            # input module embedding size the same as output module embedding size
+        return tf.nn.embedding_lookup(embed_table, batch_text)
 
     def gate_input(self, hidden_states):
         '''
@@ -203,6 +235,51 @@ class HMLSTMNetworkQa(object):
 
         return loss, prediction
 
+    def output_module_qa(self, embedding, batch_cand_embed, outcome):
+        '''
+        embedding:          [B, E]                  query_context embedding
+        batch_cand_embed:   [B, output_size, E]
+        outcome:            [B, output_size]
+
+        loss: [B, output_size] or [B, 1]
+        logits: [B, output_size]
+        '''
+        embedding = tf.expand_dims(embedding, axis=-1)              # [B, E, 1]
+        product = tf.matmul(batch_cand_embed, embedding)            # [B, output_size, 1]
+        logits = tf.squeeze(product, axis=2, name='logits')         # [B, output_size]
+
+        # the loss function used below
+        # softmax_cross_entropy_with_logits
+        loss_args = {'logits': logits, 'labels': outcome}
+        loss = self._loss_function(**loss_args)
+
+        if self._task == 'classification':
+            # due to nature of classification loss function
+            loss = tf.expand_dims(loss, -1)                         # [B, 1]
+
+        return loss, logits
+
+    def get_ans_prob_distribution(self, batch_cand, batch_ans):
+        """
+        Convert batch_ans to probablistic distribution,
+        i.e., if ans='dog' and candidates=['cat', 'dog','turtle', 'rhino'],
+        then return out=[0, 1, 0, 0]
+
+        batch_cand: [B, output_size], words represented by word id
+        batch_ans:  [B], words represented by word id
+
+        return batch_out: [B, output_size]
+        """
+        batch_size = batch_cand.shape[0]
+        batch_out = np.zeros([batch_size, self._output_size])
+        for i in range(batch_size):
+            for j in range(self._output_size):
+                if batch_cand[i][j] == batch_ans[i]:
+                    batch_out[i][j] = 1.0
+                    break
+
+        return batch_out
+
     def create_multicell(self, batch_size, reuse):
         def hmlstm_cell(layer):
             if layer == 0:
@@ -265,7 +342,8 @@ class HMLSTMNetworkQa(object):
         return h_aboves
 
     def network(self, reuse):
-        batch_size = tf.shape(self.batch_in)[1]
+        batch_in = self.input_module(self.batch_qc)                                 # [#timestep, B, E]
+        batch_size = tf.shape(batch_in)[1]
         hmlstm = self.create_multicell(batch_size, reuse)
 
         def scan_rnn(accum, elem):
@@ -286,7 +364,7 @@ class HMLSTMNetworkQa(object):
         elem_len = (sum(self._hidden_state_sizes) * 2) + self._num_layers
         initial = tf.zeros([batch_size, elem_len])              # [B, H]
 
-        states = tf.scan(scan_rnn, self.batch_in, initial)      # [T, B, H]
+        states = tf.scan(scan_rnn, batch_in, initial)      # [T, B, H]
 
         def map_indicators(elem):
             state = self.split_out_cell_states(elem)
@@ -294,33 +372,38 @@ class HMLSTMNetworkQa(object):
 
         raw_indicators = tf.map_fn(map_indicators, states)      # [T, B, L]
         indicators = tf.transpose(raw_indicators, [1, 2, 0])    # [B, L, T]
-        to_map = tf.concat((states, self.batch_out), axis=2)    # [T, B, H + O]
+        # to_map = tf.concat((states, self.batch_out), axis=2)    # [T, B, H + O]
 
-        def map_output(elem):
-            splits = tf.constant([elem_len, self._output_size])
-            cell_states, outcome = array_ops.split(value=elem,
-                                                   num_or_size_splits=splits,
-                                                   axis=1)
+        def map_output(elem, outcome):
+            """
+            Apply output module on one timestep
 
-            hs = [s.h for s in self.split_out_cell_states(cell_states)]
-            gated = self.gate_input(tf.concat(hs, axis=1))      # [B, sum(h_l)]
-            embeded = self.embed_input(gated)                   # [B, E]
-            loss, prediction = self.output_module(embeded, outcome)
+            elem: state at some timestep, [B, H]
+            outcome: [B, output_size]
+            return (loss, logits), [B, dim(loss) + dim(logits)]
+            """
+            hs = [s.h for s in self.split_out_cell_states(elem)]
+            gated = self.gate_input(tf.concat(hs, axis=1))          # [B, sum(h_l)]
+            embeded = self.embed_input(gated)                       # [B, E]
+            batch_cand_embed = self.input_module(self.batch_cand)   # [B, output_size, E]
+            loss, logits = self.output_module_qa(embeded, batch_cand_embed, outcome)
             # [B, output_size * 2] or [B, 1 + output_size]
-            return tf.concat((loss, prediction), axis=1)
+            return tf.concat((loss, logits), axis=1)
 
-        mapped = tf.map_fn(map_output, to_map)                  # [T, B, _]
+        # mapped = tf.map_fn(map_output, to_map)                  # [T, B, _]
+        # for QA, only need to apply map_output to the last timestep
+        mapped = map_output(states[-1], self.batch_out)     # [B, dim(loss)+dim(pred)]
 
         # mapped has diffenent shape for task 'regression' and 'classification'
-        loss = tf.reduce_mean(mapped[:, :, :-self._output_size])  # scalar
-        predictions = mapped[:, :, -self._output_size:]
+        loss = tf.reduce_mean(mapped[:, :-self._output_size])  # scalar
+        predictions = mapped[:, -self._output_size:]
         train = self._optimizer.minimize(loss)
 
         return train, loss, indicators, predictions
 
     def train(self,
-              batches_in,
-              batches_out,
+              cbt,
+              dataset,
               variable_path='./hmlstm_ckpt',
               load_vars_from_disk=False,
               save_vars_to_disk=False,
@@ -330,12 +413,8 @@ class HMLSTMNetworkQa(object):
 
         params:
         ---
-        batches_in: a 4 dimensional numpy array. The dimensions should be
-            [num_batches, batch_size, num_timesteps, input_size]
-            These represent the input at each time step for each batch.
-        batches_out: a 4 dimensional numpy array. The dimensions should be
-            [num_batches, batch_size, num_timesteps, output_size]
-            These represent the output at each time step for each batch.
+        cbt: a CBTDataset instance
+        dataset: a tf.data.Dataset instance that can return training data
         variable_path: the path to which variable values will be saved and/or
             loaded
         load_vars_from_disk: bool, whether to load variables prior to training
@@ -354,28 +433,41 @@ class HMLSTMNetworkQa(object):
         else:
             self.load_variables(variable_path)
 
+
+        iterator = dataset.make_initializable_iterator()
+        next_sample = iterator.get_next()
         for epoch in range(epochs):
             print('Epoch %d' % epoch)
-            for batch_in, batch_out in zip(batches_in, batches_out):
-                ops = [optim, loss]
-                feed_dict = {
-                    self.batch_in: np.swapaxes(batch_in, 0, 1),
-                    self.batch_out: np.swapaxes(batch_out, 0, 1),
-                }
-                _, _loss = self._session.run(ops, feed_dict)
-                print('loss:', _loss)
+            self._session.run(iterator.initializer)
+            while True:
+                try:
+                    sample = self._session.run(next_sample)
+                    batch_qc, batch_ans, batch_cand = cbt.convert_to_tensors(sample)
+                    batch_out = self.get_ans_prob_distribution(batch_cand, batch_ans)
+                    ops = [optim, loss]
+                    feed_dict = {
+                        self.batch_qc:   np.swapaxes(batch_qc, 0, 1),   # [T, B]
+                        self.batch_cand: batch_cand,                    # [B, output_size]
+                        self.batch_out:  batch_out,                     # [B, output_size]
+                    }
+                    _, _loss = self._session.run(ops, feed_dict)
+                    print('loss:', _loss)
+                except tf.errors.OutOfRangeError: 
+                    # end of one epoch
+                    break
 
         self.save_variables(variable_path)
 
-    def predict(self, batch, variable_path='./hmlstm_ckpt',
-                return_gradients=False):
+    def predict(self, cbt, dataset, variable_path='./hmlstm_ckpt'):
         """
         Make predictions.
 
         params:
         ---
-        batch: batch for which to make predictions. should have dimensions
-            [batch_size, num_timesteps, output_size]
+        cbt: a CBTDataset instance
+        dataset: a tf.data.Dataset instance that can return training data
+        # batch: batch for which to make predictions. should have dimensions
+        #     [batch_size, num_timesteps, output_size]
         variable_path: string. If there is no active session in the network
             object (i.e. it has not yet been used to train or predict, or the
             tensorflow session has been manually closed), variables will be
@@ -386,25 +478,36 @@ class HMLSTMNetworkQa(object):
         ---
         predictions for the batch
         """
-
-        batch = np.array(batch)
+        labels = tf.placeholder(tf.int32, shape=(None), name='labels')
         _, _, _, predictions = self._get_graph()
-
         self._load_vars(variable_path)
 
-        # batch_out is not used for prediction, but needs to be fed in
-        batch_out_size = (batch.shape[1], batch.shape[0], self._output_size)
-        gradients = tf.gradients(predictions[-1:, :], self.batch_in)
-        _predictions, _gradients = self._session.run([predictions, gradients], {
-            self.batch_in: np.swapaxes(batch, 0, 1),
-            self.batch_out: np.zeros(batch_out_size),
-        })
+        # prepare dataset pipeline
+        iterator = dataset.make_initializable_iterator()
+        next_sample = iterator.get_next()
+        self._session.run(iterator.initializer)
 
-        if return_gradients:
-            return tuple(np.swapaxes(r, 0, 1) for
-                         r in (_predictions, _gradients[0]))
+        # prepare metric
+        accuracy, update_op = tf.metrics.accuracy(labels, predictions)
+        sess.run(tf.local_variable_initializer())
 
-        return np.swapaxes(_predictions, 0, 1)
+        while True:
+            try:
+                sample = self._session.run(next_sample)
+                batch_qc, batch_ans, batch_cand = cbt.convert_to_tensors(sample)
+                batch_out = self.get_ans_prob_distribution(batch_cand, batch_ans)
+                feed_dict = {
+                    self.batch_qc:   np.swapaxes(batch_qc, 0, 1),   # [T, B]
+                    self.batch_cand: batch_cand,                    # [B, output_size]
+                    self.batch_out:  np.zeros(batch_out.shape),      # [B, output_size]
+                    labels:          batch_out,
+                }
+                self._session.run(update_op, feed_dict)    # [B, output_size]
+
+            except tf.errors.OutOfRangeError: 
+                print("Valid Accuracy:", self._session.run(accuracy))                
+                break
+
 
     def predict_boundaries(self, batch, variable_path='./hmlstm_ckpt'):
         """
