@@ -1,14 +1,14 @@
 from hmlstm import HMLSTMNetworkQa, CBTDataset
 
 VOCABULARY_PATH = './CBTest/vocab/CBT_CN_vocab.txt'
-TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_train.txt'
+TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_quick_dev_6ex.txt'
 INPUT_EMBED_SIZE = 128
 CANDIDATE_NUM = 10
+BATCH_SIZE = 2
 
 # prepare data pipeline
 print("Preparing dataset...")
-cbt = CBTDataset()
-cbt.load_vocab(VOCABULARY_PATH)
+cbt = CBTDataset(vocab_path=VOCABULARY_PATH, batch_size=BATCH_SIZE)
 train_dataset = cbt.prepare_dataset(TRAIN_DATA_PATH) # return a tf.data.Dataset instance
 
 print("Preparing network...")

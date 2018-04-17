@@ -3,6 +3,7 @@ from .multi_hmlstm_cell import MultiHMLSTMCell
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import variable_scope as vs
 import tensorflow as tf
+import math
 import numpy as np
 import sys
 
@@ -433,12 +434,13 @@ class HMLSTMNetworkQa(object):
         else:
             self.load_variables(variable_path)
 
-
+        total_steps = math.ceil(cbt.sample_num / cbt.batch_size)
         iterator = dataset.make_initializable_iterator()
         next_sample = iterator.get_next()
         for epoch in range(epochs):
             print('Epoch %d' % epoch)
             self._session.run(iterator.initializer)
+            current_step = 0
             while True:
                 try:
                     sample = self._session.run(next_sample)
@@ -451,7 +453,8 @@ class HMLSTMNetworkQa(object):
                         self.batch_out:  batch_out,                     # [B, output_size]
                     }
                     _, _loss = self._session.run(ops, feed_dict)
-                    print('loss:', _loss)
+                    print('step: %6.2f%%, loss: %f' % (current_step / total_steps, _loss))
+                    current_step += 1
                 except tf.errors.OutOfRangeError: 
                     # end of one epoch
                     break

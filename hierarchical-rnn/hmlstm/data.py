@@ -8,21 +8,28 @@ PAD = '<PAD>'   # Padding
 class CBTDataset(object):
     """
     Usage:
-    cbt = CBTDataset()
+    cbt = CBTDataset(vocab_path, batch_size)
     cbt.load_vocab(vocab_path)
     ds = cbt.prepare_dataset(text_path) # return a tf.data.Dataset instance
 
     use convert_to_tensors() to do the padding and convert words to ids
         on what returns after calling iterator.get_next()
     """
-
-    def load_vocab(self, vocab_path):
+    def __init__(self, vocab_path, batch_size=2):
         with open(vocab_path, 'r') as f:
             text = f.read()
 
         self.word_id = {w: i for i, w in enumerate(text.split('\n'))}
         self.id_word = {i: w for w, i in self.word_id.items()}
-        return self.word_id, self.id_word
+        self.batch_size = batch_size
+
+    # def load_vocab(self, vocab_path):
+    #     with open(vocab_path, 'r') as f:
+    #         text = f.read()
+
+    #     self.word_id = {w: i for i, w in enumerate(text.split('\n'))}
+    #     self.id_word = {i: w for w, i in self.word_id.items()}
+    #     return self.word_id, self.id_word
 
     def word_to_id(self, word):
         """ return a id correspondent to a word, or id to UNK if word not in vocabulary"""
@@ -78,6 +85,7 @@ class CBTDataset(object):
                 signals['candidates'].append(candidates)
                 signals['answer'].append(answer)
 
+        self.sample_num = len(signals['answer'])
         return signals
 
     def merge_query_context(self, signals, separator=SEP, convert_word_to_id=False):
@@ -99,7 +107,7 @@ class CBTDataset(object):
         dataset = tf.data.Dataset.from_tensor_slices((signals['query_context'], signals['answer'], signals['candidates']))
         dataset = dataset.shuffle(buffer_size=10000)
         # dataset = dataset.padded_batch(1, padded_shapes=[None])
-        dataset = dataset.batch(32)
+        dataset = dataset.batch(self.batch_size)
         return dataset
 
     def convert_to_tensors(self, batch_data):
