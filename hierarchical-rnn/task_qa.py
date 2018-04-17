@@ -1,10 +1,10 @@
 from hmlstm import HMLSTMNetworkQa, CBTDataset
 
 VOCABULARY_PATH = './CBTest/vocab/CBT_CN_vocab.txt'
-TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_quick_dev_6ex.txt'
+TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_train.txt'
 INPUT_EMBED_SIZE = 128
 CANDIDATE_NUM = 10
-BATCH_SIZE = 2
+BATCH_SIZE = 32
 
 # prepare data pipeline
 print("Preparing dataset...")

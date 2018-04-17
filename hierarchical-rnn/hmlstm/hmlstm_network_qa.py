@@ -454,7 +454,8 @@ class HMLSTMNetworkQa(object):
                     }
                     _, _loss = self._session.run(ops, feed_dict)
                     current_step += 1
-                    print('step: %6.2f%%, loss: %f' % (current_step / total_steps, _loss))
+                    if current_step % 100 == 0:
+			print('step: %6.2f%%, loss: %f' % (current_step / total_steps, _loss))
                 except tf.errors.OutOfRangeError: 
                     # end of one epoch
                     break
