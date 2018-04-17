@@ -10,6 +10,5 @@
 #SBATCH --output=logs/qa_class.out
 
 module purge
-module load tensorflow/python3.6/1.5.0
-module swap cuda/8.0.44
+module load tensorflow/python3.6/1.5.0 cuda/9.0.176
 python3 -u task_qa.py > logs/task_qa.log

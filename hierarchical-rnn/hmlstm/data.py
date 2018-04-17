@@ -99,7 +99,7 @@ class CBTDataset(object):
         dataset = tf.data.Dataset.from_tensor_slices((signals['query_context'], signals['answer'], signals['candidates']))
         dataset = dataset.shuffle(buffer_size=10000)
         # dataset = dataset.padded_batch(1, padded_shapes=[None])
-        dataset = dataset.batch(2)
+        dataset = dataset.batch(32)
         return dataset
 
     def convert_to_tensors(self, batch_data):

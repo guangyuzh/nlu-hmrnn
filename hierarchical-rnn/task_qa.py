@@ -1,7 +1,7 @@
 from hmlstm import HMLSTMNetworkQa, CBTDataset
 
 VOCABULARY_PATH = './CBTest/vocab/CBT_CN_vocab.txt'
-TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_quick_dev_6ex.txt'
+TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_train.txt'
 INPUT_EMBED_SIZE = 128
 CANDIDATE_NUM = 10
 
@@ -18,7 +18,7 @@ network = HMLSTMNetworkQa(output_size=CANDIDATE_NUM, input_size=INPUT_EMBED_SIZE
 
 print("Training...")
 network.train(cbt, train_dataset, save_vars_to_disk=True, 
-              load_vars_from_disk=False, variable_path='./text8')
+              load_vars_from_disk=False, variable_path='./qa_variable')
 
 
 """
