@@ -1,6 +1,6 @@
 from hmlstm import HMLSTMNetworkQa, CBTDataset
 
-VOCABULARY_PATH = './CBT_CN_vocab.txt'
+VOCABULARY_PATH = './CBTest/vocab/CBT_CN_vocab.txt'
 TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_quick_dev_6ex.txt'
 INPUT_EMBED_SIZE = 128
 CANDIDATE_NUM = 10
