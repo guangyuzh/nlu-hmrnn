@@ -16,8 +16,6 @@ def _check_length_match(boundaries, sentences):
     for i in range(len(boundaries)):
         assert len(boundaries[i]) == len(sentences[i]), \
             "Tree {}:\n{}\n{}".format(i, boundaries[i], sentences[i])
-        print(boundaries[i])
-        print(sentences[i])
 
 
 def flatten_tree(t, threshold):
