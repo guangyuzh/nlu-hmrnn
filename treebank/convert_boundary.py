@@ -2,18 +2,37 @@ from nltk.corpus import treebank
 import re, string
 import os, argparse
 
+PUNC_TRANS = str.maketrans({key: None for key in string.punctuation})
 
-PUNC_TABLE = str.maketrans({key: None for key in string.punctuation})
+
+def _is_punc(word):
+    for c in word:
+        if c not in string.punctuation:
+            return False
+    return True
+
+
+def _check_length_match(boundaries, sentences):
+    for i in range(len(boundaries)):
+        assert len(boundaries[i]) == len(sentences[i]), \
+            "Tree {}:\n{}\n{}".format(i, boundaries[i], sentences[i])
+        print(boundaries[i])
+        print(sentences[i])
+
 
 def flatten_tree(t, threshold):
     pos_list = t.pos()
     if len(pos_list) < threshold:
         return
+    if _is_punc(pos_list[0][0]):
+        del pos_list[0]
+    if _is_punc(pos_list[-1][0]):
+        del pos_list[-1]
     sentence = ""
     phrase = ""
     last_pos = ""
     for word, pos in pos_list:
-        if word in string.punctuation:
+        if _is_punc(word):
             continue
         word = re.sub(r'\d', 'x', word)
         if last_pos != pos:
@@ -23,12 +42,9 @@ def flatten_tree(t, threshold):
             last_pos = pos
         else:
             phrase += '0' + word
-    try:
-        if last_pos == pos_list[-2][1]:
-            sentence += phrase
-    except:
-        print(pos_list)
-    sentence = sentence.translate(PUNC_TABLE)
+    sentence += phrase
+
+    sentence = sentence.translate(PUNC_TRANS)
     binarify = re.compile(r'[a-z]', re.IGNORECASE)
     return binarify.sub('0', sentence)
 
@@ -40,19 +56,19 @@ def gen_corpus(path, threshold):
     # t.draw()
     boundaries = []
     sentences = []
-    for file in treebank.parsed_sents(treebank.fileids()):
-        for t in file:
-            flat = flatten_tree(t, threshold)
-            if flat:
-                boundaries.append(flat)
-                sentence = ' '.join(t.leaves()).translate(PUNC_TABLE)
-                sentence = re.sub(r' +', ' ', sentence)
-                # replace digit(s) as 'x'(s)
-                sentences.append(re.sub(r'\d', 'x', sentence))
+    for t in treebank.parsed_sents(treebank.fileids()):
+        flat = flatten_tree(t, threshold)
+        if flat:
+            boundaries.append(flat)
+            sentence = ' '.join(t.leaves()).translate(PUNC_TRANS).lower()
+            sentence = re.sub(r' +', ' ', sentence)
+            # replace digit(s) as 'x'(s)
+            sentences.append(re.sub(r'\d', 'x', sentence).strip())
+    _check_length_match(boundaries, sentences)
     with open(path + "/boundaries.txt", 'w') as f:
-        f.write('\n'.join(boundaries))
+        f.write('1'.join(boundaries))
     with open(path + "/sentences.txt", 'w') as f:
-        f.write('\n'.join(sentences))
+        f.write(' '.join(sentences))
 
 
 if __name__ == '__main__':
