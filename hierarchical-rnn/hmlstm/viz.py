@@ -2,17 +2,22 @@ import matplotlib.pyplot as plt
 import sys
 from collections import defaultdict
 
+
 class Unbuffered(object):
    def __init__(self, stream):
        self.stream = stream
+
    def write(self, data):
        self.stream.write(data)
        self.stream.flush()
+
    def writelines(self, datas):
        self.stream.writelines(datas)
        self.stream.flush()
+
    def __getattr__(self, attr):
        return getattr(self.stream, attr)
+
 
 sys.stdout = Unbuffered(sys.stdout)
 
@@ -77,10 +82,8 @@ def save_boundaries(truth, predictions, indicators, layers,
         end += row_len
 
     for l, v in layer_bounds.items():
-        with open(path + "layer_{}_bound.txt".format(l), 'w') as f:
+        with open(path + "layer_{}_bound.txt".format(l), 'a') as f:
             f.write(v)
-            f.close()
-    with open(path + "compare.txt", 'w') as f:
+    with open(path + "compare.txt", 'a') as f:
         f.write(verbose)
-        f.close()
     print("Finished saving one batch")

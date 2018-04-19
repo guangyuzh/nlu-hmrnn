@@ -20,7 +20,7 @@ Identifier> treebank
 1. F1 score of HM-RNN boundary detection:
     1. (*finished*) Convert parsing in PTB to 1s/0s boundary indicators, and use that as ground truth boundaries
     2. (*finished*) Test trained HM-LSTM models on PTB, and store layer-wise indicators
-    3. calculate F1 scores of HM-LSTM for some layer’s boundary indicators, (which is expected to be low…)
+    3. (*finished*) calculate F1 scores of HM-LSTM for some layer’s boundary indicators (*TODO: plot fancy figures*)
     3. Calculate BPC (LM evaluation metric) by these HM-LSTM on PTB
     4. Compare the correlation/trending of F1 and BPC
 
