@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=1:00:00
+#SBATCH --time=30:00:00
 #SBATCH --gres=gpu:1
 #SBATCH --mem=10GB
 #SBATCH --job-name=task_qa
-#SBATCH --mail-type=END
+#SBATCH --mail-type=END,BEGIN
 #SBATCH --mail-user=mp4504@nyu.edu
 #SBATCH --output=logs/qa_class.out
 
