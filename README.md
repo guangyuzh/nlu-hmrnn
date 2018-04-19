@@ -1,6 +1,11 @@
 # Word and Constituent Boundaries in Hierarchical Multiscale Recurrent Neural Networks
 
+### References
+* [hierarchical-rnn](https://github.com/n-s-f/hierarchical-rnn) package
+* [Hierarchical Multiscale Recurrent Neural Networks](https://arxiv.org/abs/1609.01704)
+
 ### Corpus
+* **[Text8](https://github.com/guangyuzh/nlu-hmrnn/blob/master/hierarchical-rnn/text8.txt)** 
 * **Penn Treebank** partially available from [NLTK](http://www.nltk.org/nltk_data/)
 ```python
 >>> import nltk
