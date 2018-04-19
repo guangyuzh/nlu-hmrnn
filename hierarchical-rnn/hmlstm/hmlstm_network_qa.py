@@ -455,7 +455,7 @@ class HMLSTMNetworkQa(object):
                     _, _loss = self._session.run(ops, feed_dict)
                     current_step += 1
                     if current_step % 100 == 0:
-                        print('step: %6.2f%%, loss: %f' % (current_step / total_steps, _loss))
+                        print('step: %6.2f%%, loss: %f' % (current_step / total_steps * 100, _loss))
                 except tf.errors.OutOfRangeError: 
                     # end of one epoch
                     break
@@ -509,7 +509,7 @@ class HMLSTMNetworkQa(object):
                 self._session.run(update_op, feed_dict)    # [B, output_size]
 
             except tf.errors.OutOfRangeError: 
-                print("Valid Accuracy:", self._session.run(accuracy))                
+                print("Valid Accuracy:", self._session.run(accuracy))
                 break
 
 
