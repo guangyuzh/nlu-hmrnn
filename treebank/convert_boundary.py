@@ -18,7 +18,7 @@ def _check_length_match(boundaries, sentences):
             "Tree {}:\n{}\n{}".format(i, boundaries[i], sentences[i])
 
 
-def flatten_tree(t, threshold):
+def _flatten_tree(t, threshold):
     pos_list = t.pos()
     if len(pos_list) < threshold:
         return
@@ -48,14 +48,19 @@ def flatten_tree(t, threshold):
 
 
 def gen_corpus(path, threshold):
-    # src: http://www.nltk.org/_modules/nltk/tree.html
-    # corpora from wsj_0001.mrg to wsj_0199.mrg
-    # e.g.: t = treebank.parsed_sents('wsj_0001.mrg')[0]
-    # t.draw()
+    """
+    src: http://www.nltk.org/_modules/nltk/tree.html
+    corpora from wsj_0001.mrg to wsj_0199.mrg
+    e.g.: t = treebank.parsed_sents('wsj_0001.mrg')[0]
+    to visualize a tree: t.draw()
+    :param path: save to path
+    :param threshold: minimum length of a sentence to keep
+    :return: none
+    """
     boundaries = []
     sentences = []
     for t in treebank.parsed_sents(treebank.fileids()):
-        flat = flatten_tree(t, threshold)
+        flat = _flatten_tree(t, threshold)
         if flat:
             boundaries.append(flat)
             sentence = ' '.join(t.leaves()).translate(PUNC_TRANS).lower()
