@@ -1,5 +1,9 @@
 # Word and Constituent Boundaries in Hierarchical Multiscale Recurrent Neural Networks
 
+### Branches under development
+* Parser benchmark on Penn Treebank: [ptb](https://github.com/guangyuzh/nlu-hmrnn/tree/ptb)
+* Question Answering: [train_qa](https://github.com/guangyuzh/nlu-hmrnn/tree/train_qa)
+
 ### References
 * [hierarchical-rnn](https://github.com/n-s-f/hierarchical-rnn) package
 * [Hierarchical Multiscale Recurrent Neural Networks](https://arxiv.org/abs/1609.01704)
@@ -19,7 +23,8 @@ Identifier> treebank
 ### Next steps
 1. F1 score of HM-RNN boundary detection:
     1. (*finished*) Convert parsing in PTB to 1s/0s boundary indicators, and use that as ground truth boundaries
-    2. Run some distinctly tuned HM-LSTM models on PTB, and calculate F1 scores of HM-LSTM for some layer’s boundary indicators, (which is expected to be low…)
+    2. (*finished*) Test trained HM-LSTM models on PTB, and store layer-wise indicators
+    3. (*finished*) calculate F1 scores of HM-LSTM for some layer’s boundary indicators (*TODO: plot fancy figures*)
     3. Calculate BPC (LM evaluation metric) by these HM-LSTM on PTB
     4. Compare the correlation/trending of F1 and BPC
 
