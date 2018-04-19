@@ -427,7 +427,6 @@ class HMLSTMNetworkQa(object):
 
         if not load_vars_from_disk:
             if self._session is None:
-
                 self._session = tf.Session()
                 init = tf.global_variables_initializer()
                 self._session.run(init)
@@ -439,6 +438,7 @@ class HMLSTMNetworkQa(object):
         next_sample = iterator.get_next()
         for epoch in range(epochs):
             print('Epoch %d' % epoch)
+            writer = tf.summary.FileWriter("./tflog/", self._session.graph)
             self._session.run(iterator.initializer)
             current_step = 0
             while True:
@@ -459,6 +459,7 @@ class HMLSTMNetworkQa(object):
                 except tf.errors.OutOfRangeError: 
                     # end of one epoch
                     break
+            writer.close()
 
         self.save_variables(variable_path)
 
