@@ -21,21 +21,22 @@ if args.dev:
 	TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_quick_dev_6ex.txt'
 	BATCH_SIZE = 2
 
-print("Preparing dataset...")
+# Prepare dataset
 cbt = CBTDataset(vocab_path=VOCABULARY_PATH, batch_size=BATCH_SIZE)
 train_dataset = cbt.prepare_dataset(TRAIN_DATA_PATH) # return a tf.data.Dataset instance
+valid_dataset = cbt.prepare_dataset(VALID_DATA_PATH)
 
-print("Preparing network...")
+# Prepare network
 network = HMLSTMNetworkQa(output_size=CANDIDATE_NUM, input_size=INPUT_EMBED_SIZE, embed_size=INPUT_EMBED_SIZE, 
                         out_hidden_size=1024, hidden_state_sizes=1024, num_layers=2,
                         task='classification')
 
 if not args.predict:
-	print("Training...")
-	network.train(cbt, train_dataset, save_vars_to_disk=True, 
+	# Training
+	network.train(cbt, train_dataset, valid_dataset, save_vars_to_disk=True, 
 	              load_vars_from_disk=False, variable_path='./qa_variable')
 else:
-	print("Predicting...")
+	# Predicting
 
 """
 predictions = network.predict(batches_in[-1], variable_path='./text8')

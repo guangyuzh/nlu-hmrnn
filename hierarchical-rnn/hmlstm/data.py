@@ -144,7 +144,7 @@ class CBTDataset(object):
             cand_list.append(cand_array[None, :])
         converted_batch_candidates = np.concatenate(cand_list, axis=0)
 
-        return converted_batch_query_context, converted_batch_answer, converted_batch_candidates
+        return converted_batch_query_context, batch_data[1], converted_batch_candidates
 
     @staticmethod
     def create_vocabulary(input_path, output_path):
