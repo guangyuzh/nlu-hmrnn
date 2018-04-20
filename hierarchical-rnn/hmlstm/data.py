@@ -73,18 +73,17 @@ class CBTDataset(object):
             answer = query_ans_cand[1]
             candidates = query_ans_cand[2].split('|')[:10]
             assert len(candidates) == 10
+            ans_index = candidates.index(answer)
 
             if convert_word_to_id:
                 signals['context'].append(self.words_to_ids(context))
                 signals['query'].append(self.words_to_ids(query))
                 signals['candidates'].append(np.array([self.word_to_id(word) for word in candidates], dtype=np.int32))
-                signals['answer'].append(self.words_to_ids(answer))
             else:
                 signals['context'].append(context)
                 signals['query'].append(query)
                 signals['candidates'].append(candidates)
-                signals['answer'].append(answer)
-
+            signals['answer'].append(ans_index) # store the index of answer instead of answer itself.
         self.sample_num = len(signals['answer'])
         return signals
 
@@ -136,7 +135,7 @@ class CBTDataset(object):
         converted_batch_query_context = np.concatenate(padded_qc_list, axis=0)
 
         # deal with answers
-        converted_batch_answer = np.array([self.word_to_id(answer.decode('utf-8')) for answer in batch_data[1]], dtype=np.int32)
+        # converted_batch_answer = np.array([self.word_to_id(answer.decode('utf-8')) for answer in batch_data[1]], dtype=np.int32)
 
         # deal with candidates
         cand_list = []

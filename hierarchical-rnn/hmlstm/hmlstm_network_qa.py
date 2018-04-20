@@ -2,6 +2,7 @@ from .hmlstm_cell import HMLSTMCell, HMLSTMState
 from .multi_hmlstm_cell import MultiHMLSTMCell
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import variable_scope as vs
+from tensorflow.python import debug as tf_debug
 import tensorflow as tf
 import math
 import numpy as np
@@ -76,7 +77,7 @@ class HMLSTMNetworkQa(object):
             self._hidden_state_sizes = hidden_state_sizes
 
         if task == 'classification':
-            self._loss_function = tf.nn.softmax_cross_entropy_with_logits
+            self._loss_function = tf.nn.sparse_softmax_cross_entropy_with_logits
         elif task == 'regression':
             self._loss_function = lambda logits, labels: tf.square((logits - labels))
 
@@ -88,7 +89,7 @@ class HMLSTMNetworkQa(object):
 
         batch_qc_shape = (None, None)                # [num_of_timesteps, Batch_size]
         batch_cand_shape = (None, self._output_size) # [Batch_size, output_size]
-        batch_out_shape = (None, self._output_size)  # [Batch_size, output_size]
+        batch_out_shape = (None)                     # [Batch_size]
 
         self.batch_qc = tf.placeholder(
             tf.int32, shape=batch_qc_shape, name='batch_qc')
@@ -100,14 +101,13 @@ class HMLSTMNetworkQa(object):
         self._optimizer = tf.train.AdamOptimizer(1e-3)
 
         self._initialize_input_module_variables()
-        self._initialize_output_variables()
+#        self._initialize_output_variables()
         self._initialize_gate_variables()
         self._initialize_embedding_variables()
 
     def _initialize_input_module_variables(self):
         with vs.variable_scope('input_module_vars'):
-            embed_table = vs.get_variable(
-                'embed_table', shape=[self._vocab_size, self._embed_size])
+            vs.get_variable('embed_table', shape=[self._vocab_size, self._embed_size])
 
     def _initialize_gate_variables(self):
         with vs.variable_scope('gates_vars'):
@@ -121,21 +121,21 @@ class HMLSTMNetworkQa(object):
             embed_shape = [sum(self._hidden_state_sizes), self._embed_size]
             vs.get_variable('embed_weights', embed_shape, dtype=tf.float32)
 
-    def _initialize_output_variables(self):
-        with vs.variable_scope('output_module_vars'):
-            vs.get_variable('b1', [1, self._out_hidden_size], dtype=tf.float32)
-            vs.get_variable('b2', [1, self._out_hidden_size], dtype=tf.float32)
-            vs.get_variable('b3', [1, self._output_size], dtype=tf.float32)
-            vs.get_variable(
-                'w1', [self._embed_size, self._out_hidden_size],
-                dtype=tf.float32)
-            vs.get_variable(
-                'w2', [self._out_hidden_size, self._out_hidden_size],
-                dtype=tf.float32)
-            vs.get_variable(
-                'w3', [self._out_hidden_size, self._output_size],
-                dtype=tf.float32)
-
+#    def _initialize_output_variables(self):
+#        with vs.variable_scope('output_module_vars'):
+#            vs.get_variable('b1', [1, self._out_hidden_size], dtype=tf.float32)
+#            vs.get_variable('b2', [1, self._out_hidden_size], dtype=tf.float32)
+#            vs.get_variable('b3', [1, self._output_size], dtype=tf.float32)
+#            vs.get_variable(
+#                'w1', [self._embed_size, self._out_hidden_size],
+#                dtype=tf.float32)
+#            vs.get_variable(
+#                'w2', [self._out_hidden_size, self._out_hidden_size],
+#                dtype=tf.float32)
+#            vs.get_variable(
+#                'w3', [self._out_hidden_size, self._output_size],
+#                dtype=tf.float32)
+#
     def load_variables(self, path='./hmlstm_ckpt'):
         if self._session is None:
             self._session = tf.Session()
@@ -159,7 +159,8 @@ class HMLSTMNetworkQa(object):
         with vs.variable_scope('input_module_vars', reuse=True):
             embed_table = vs.get_variable('embed_table')
             # input module embedding size the same as output module embedding size
-        return tf.nn.embedding_lookup(embed_table, batch_text)
+            batch_text_embed = tf.nn.embedding_lookup(embed_table, batch_text)
+        return batch_text_embed 
 
     def gate_input(self, hidden_states):
         '''
@@ -200,42 +201,42 @@ class HMLSTMNetworkQa(object):
 
         return embedding
 
-    def output_module(self, embedding, outcome):
-        '''
-        embedding: [B, E]
-        outcome: [B, output_size]
-
-        loss: [B, output_size] or [B, 1]
-        prediction: [B, output_size]
-        '''
-        with vs.variable_scope('output_module_vars', reuse=True):
-            b1 = vs.get_variable('b1')
-            b2 = vs.get_variable('b2')
-            b3 = vs.get_variable('b3')
-            w1 = vs.get_variable('w1')
-            w2 = vs.get_variable('w2')
-            w3 = vs.get_variable('w3')
-
-            # feed forward network
-            # first layer
-            l1 = tf.nn.tanh(tf.matmul(embedding, w1) + b1)
-
-            # second layer
-            l2 = tf.nn.tanh(tf.matmul(l1, w2) + b2)
-
-            # the loss function used below
-            # softmax_cross_entropy_with_logits
-            prediction = tf.add(tf.matmul(l2, w3), b3, name='prediction')
-
-            loss_args = {'logits': prediction, 'labels': outcome}
-            loss = self._loss_function(**loss_args)
-
-            if self._task == 'classification':
-                # due to nature of classification loss function
-                loss = tf.expand_dims(loss, -1)
-
-        return loss, prediction
-
+#    def output_module(self, embedding, outcome):
+#        '''
+#        embedding: [B, E]
+#        outcome: [B, output_size]
+#
+#        loss: [B, output_size] or [B, 1]
+#        prediction: [B, output_size]
+#        '''
+#        with vs.variable_scope('output_module_vars', reuse=True):
+#            b1 = vs.get_variable('b1')
+#            b2 = vs.get_variable('b2')
+#            b3 = vs.get_variable('b3')
+#            w1 = vs.get_variable('w1')
+#            w2 = vs.get_variable('w2')
+#            w3 = vs.get_variable('w3')
+#
+#            # feed forward network
+#            # first layer
+#            l1 = tf.nn.tanh(tf.matmul(embedding, w1) + b1)
+#
+#            # second layer
+#            l2 = tf.nn.tanh(tf.matmul(l1, w2) + b2)
+#
+#            # the loss function used below
+#            # softmax_cross_entropy_with_logits
+#            prediction = tf.add(tf.matmul(l2, w3), b3, name='prediction')
+#
+#            loss_args = {'logits': prediction, 'labels': outcome}
+#            loss = self._loss_function(**loss_args)
+#
+#            if self._task == 'classification':
+#                # due to nature of classification loss function
+#                loss = tf.expand_dims(loss, -1)
+#
+#        return loss, prediction
+#
     def output_module_qa(self, embedding, batch_cand_embed, outcome):
         '''
         embedding:          [B, E]                  query_context embedding
@@ -245,41 +246,42 @@ class HMLSTMNetworkQa(object):
         loss: [B, output_size] or [B, 1]
         logits: [B, output_size]
         '''
-        embedding = tf.expand_dims(embedding, axis=-1)              # [B, E, 1]
-        product = tf.matmul(batch_cand_embed, embedding)            # [B, output_size, 1]
-        logits = tf.squeeze(product, axis=2, name='logits')         # [B, output_size]
+        with vs.variable_scope('output_module_qa_vars', reuse=True):
+            embedding = tf.expand_dims(embedding, axis=-1)              # [B, E, 1]
+            product = tf.matmul(batch_cand_embed, embedding)            # [B, output_size, 1]
+            logits = tf.squeeze(product, axis=2, name='logits')         # [B, output_size]
 
-        # the loss function used below
-        # softmax_cross_entropy_with_logits
-        loss_args = {'logits': logits, 'labels': outcome}
-        loss = self._loss_function(**loss_args)
+            # the loss function used below
+            # softmax_cross_entropy_with_logits
+            loss_args = {'logits': logits, 'labels': outcome}
+            loss = self._loss_function(**loss_args)
 
-        if self._task == 'classification':
-            # due to nature of classification loss function
-            loss = tf.expand_dims(loss, -1)                         # [B, 1]
+            if self._task == 'classification':
+                # due to nature of classification loss function
+                loss = tf.expand_dims(loss, -1)                         # [B, 1]
 
         return loss, logits
 
-    def get_ans_prob_distribution(self, batch_cand, batch_ans):
-        """
-        Convert batch_ans to probablistic distribution,
-        i.e., if ans='dog' and candidates=['cat', 'dog','turtle', 'rhino'],
-        then return out=[0, 1, 0, 0]
-
-        batch_cand: [B, output_size], words represented by word id
-        batch_ans:  [B], words represented by word id
-
-        return batch_out: [B, output_size]
-        """
-        batch_size = batch_cand.shape[0]
-        batch_out = np.zeros([batch_size, self._output_size])
-        for i in range(batch_size):
-            for j in range(self._output_size):
-                if batch_cand[i][j] == batch_ans[i]:
-                    batch_out[i][j] = 1.0
-                    break
-
-        return batch_out
+#    def get_ans_prob_distribution(self, batch_cand, batch_ans):
+#        """
+#        Convert batch_ans to index,
+#        i.e., if ans='dog' and candidates=['cat', 'dog','turtle', 'rhino'],
+#        then return out = 1
+#
+#        batch_cand: [B, output_size], words represented by word id
+#        batch_ans:  [B], words represented by word id
+#
+#        return batch_out: [B]
+#        """
+#        batch_size = batch_cand.shape[0]
+#        batch_out = np.zeros([batch_size, self._output_size])
+#        for i in range(batch_size):
+#            for j in range(self._output_size):
+#                if batch_cand[i][j] == batch_ans[i]:
+#                    batch_out[i][j] = 1.0
+#                    break
+#
+#        return batch_out
 
     def create_multicell(self, batch_size, reuse):
         def hmlstm_cell(layer):
@@ -389,17 +391,17 @@ class HMLSTMNetworkQa(object):
             batch_cand_embed = self.input_module(self.batch_cand)   # [B, output_size, E]
             loss, logits = self.output_module_qa(embeded, batch_cand_embed, outcome)
             # [B, output_size * 2] or [B, 1 + output_size]
-            return tf.concat((loss, logits), axis=1)
+            # return tf.concat((loss, logits), axis=1)
+            return loss, logits
 
         # mapped = tf.map_fn(map_output, to_map)                  # [T, B, _]
         # for QA, only need to apply map_output to the last timestep
-        mapped = map_output(states[-1], self.batch_out)     # [B, dim(loss)+dim(pred)]
-
+        # mapped = map_output(states[-1], self.batch_out)     # [B, dim(loss)+dim(pred)]
+        loss, predictions = map_output(states[-1], self.batch_out) # both [B, output_size]
         # mapped has diffenent shape for task 'regression' and 'classification'
-        loss = tf.reduce_mean(mapped[:, :-self._output_size])  # scalar
-        predictions = mapped[:, -self._output_size:]
+        loss = tf.reduce_mean(loss)  # scalar
+        # predictions = mapped[:, -self._output_size:]
         train = self._optimizer.minimize(loss)
-
         return train, loss, indicators, predictions
 
     def train(self,
@@ -423,11 +425,12 @@ class HMLSTMNetworkQa(object):
         epochs: integer, number of epochs
         """
 
-        optim, loss, _, _ = self._get_graph()
+        optim, loss, _, pred = self._get_graph()
 
         if not load_vars_from_disk:
             if self._session is None:
                 self._session = tf.Session()
+                # self._session = tf_debug.LocalCLIDebugWrapperSession(self._session)
                 init = tf.global_variables_initializer()
                 self._session.run(init)
         else:
@@ -436,21 +439,21 @@ class HMLSTMNetworkQa(object):
         total_steps = math.ceil(cbt.sample_num / cbt.batch_size)
         iterator = dataset.make_initializable_iterator()
         next_sample = iterator.get_next()
+        # writer = tf.summary.FileWriter("./tflog/", self._session.graph)
         for epoch in range(epochs):
             print('Epoch %d' % epoch)
-            writer = tf.summary.FileWriter("./tflog/", self._session.graph)
             self._session.run(iterator.initializer)
             current_step = 0
             while True:
                 try:
                     sample = self._session.run(next_sample)
-                    batch_qc, batch_ans, batch_cand = cbt.convert_to_tensors(sample)
-                    batch_out = self.get_ans_prob_distribution(batch_cand, batch_ans)
+                    batch_qc, batch_out, batch_cand = cbt.convert_to_tensors(sample)
+                    # batch_out = self.get_ans_prob_distribution(batch_cand, batch_ans)
                     ops = [optim, loss]
                     feed_dict = {
                         self.batch_qc:   np.swapaxes(batch_qc, 0, 1),   # [T, B]
                         self.batch_cand: batch_cand,                    # [B, output_size]
-                        self.batch_out:  batch_out,                     # [B, output_size]
+                        self.batch_out:  batch_out,                     # [B]
                     }
                     _, _loss = self._session.run(ops, feed_dict)
                     current_step += 1
@@ -459,10 +462,9 @@ class HMLSTMNetworkQa(object):
                 except tf.errors.OutOfRangeError: 
                     # end of one epoch
                     break
-            writer.close()
-
+        # writer.close()
         self.save_variables(variable_path)
-
+       
     def predict(self, cbt, dataset, variable_path='./hmlstm_ckpt'):
         """
         Make predictions.
@@ -499,12 +501,12 @@ class HMLSTMNetworkQa(object):
         while True:
             try:
                 sample = self._session.run(next_sample)
-                batch_qc, batch_ans, batch_cand = cbt.convert_to_tensors(sample)
-                batch_out = self.get_ans_prob_distribution(batch_cand, batch_ans)
+                batch_qc, batch_out, batch_cand = cbt.convert_to_tensors(sample)
+                # batch_out = self.get_ans_prob_distribution(batch_cand, batch_ans)
                 feed_dict = {
                     self.batch_qc:   np.swapaxes(batch_qc, 0, 1),   # [T, B]
                     self.batch_cand: batch_cand,                    # [B, output_size]
-                    self.batch_out:  np.zeros(batch_out.shape),      # [B, output_size]
+                    self.batch_out:  np.zeros(batch_out.shape),      # [B]
                     labels:          batch_out,
                 }
                 self._session.run(update_op, feed_dict)    # [B, output_size]
