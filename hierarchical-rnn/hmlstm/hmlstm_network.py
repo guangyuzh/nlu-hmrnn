@@ -82,7 +82,7 @@ class HMLSTMNetwork(object):
         self.batch_out = tf.placeholder(
             tf.float32, shape=batch_out_shape, name='batch_out')
 
-        self._optimizer = tf.train.AdamOptimizer(1e-4)
+        self._optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
         self._initialize_output_variables()
         self._initialize_gate_variables()
         self._initialize_embedding_variables()
@@ -387,7 +387,8 @@ class HMLSTMNetwork(object):
         """
 
         batch = np.array(batch)
-        _, _, _, predictions = self._get_graph()
+        # optim and loss are for computing loss/BPC only
+        optim, loss, _, predictions = self._get_graph()
 
         self._load_vars(variable_path)
 
@@ -398,6 +399,16 @@ class HMLSTMNetwork(object):
             self.batch_in: np.swapaxes(batch, 0, 1),
             self.batch_out: np.zeros(batch_out_size),
         })
+
+        # for computing loss/BPC only
+        batch_in = np.array([batch[0][:-1, :]])
+        batch_out = np.array([batch[0][1:, :]])
+        feed_dict = {
+            self.batch_in: np.swapaxes(batch_in, 0, 1),
+            self.batch_out: np.swapaxes(batch_out, 0, 1),
+        }
+        _, _loss = self._session.run([optim, loss], feed_dict)
+        print('loss:', _loss)
 
         if return_gradients:
             return tuple(np.swapaxes(r, 0, 1) for
