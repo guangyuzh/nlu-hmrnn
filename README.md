@@ -26,11 +26,11 @@ Identifier> treebank
     2. (*finished*) Test trained HM-LSTM models on PTB, and store layer-wise indicators
     3. (*finished*) calculate F1 scores of HM-LSTM for some layer’s boundary indicators (*TODO: plot fancy figures*)
     3. (*finished*) Calculate BPC (LM evaluation metric) by these HM-LSTM on PTB
-    4. Compare the correlation/trending of F1 and BPC
+    4. *Train more models; compare the correlation/trending of F1 and BPC*
 
 1. Statistically analyze with PCFG from PTB:
-    1. Focus on improving syntactic meanings of HM-LSTM boundary indicators
-    2. Compute PCFGs from PTB
+    1. (*finished*) Compute PCFGs from PTB
+    2. Pick the model with best syntactic meanings of HM-LSTM boundary indicators / highest F1 score
     3. Find out if/what constituencies detected by HM-LSTM boundary coincide with PCFGs
     
 1. QA on children book dataset
