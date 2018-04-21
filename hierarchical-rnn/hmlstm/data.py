@@ -5,185 +5,99 @@ UNK = '<UKN>'   # Unknown
 SEP = '<SEP>'   # Separator
 PAD = '<PAD>'   # Padding
 
-class CBTDataset(object):
+"""
+Usage:
+cbt = CBTDataset(vocab_path, batch_size)
+ds = cbt.prepare_dataset(train_text_path) # return a tf.data.Dataset instance
+iterator = ds.make_one_shot_iterator()
+query_context, candidates, answer = iterator.get_next()
+...
+
+"""
+
+def load_cbt(text_path):
     """
-    Usage:
-    cbt = CBTDataset(vocab_path, batch_size)
-    cbt.load_vocab(vocab_path)
-    ds = cbt.prepare_dataset(text_path) # return a tf.data.Dataset instance
-
-    use convert_to_tensors() to do the padding and convert words to ids
-        on what returns after calling iterator.get_next()
+    Read CBT dataset and return a list of tuples in the form of
+    (context, query, candidates, answer).
     """
-    def __init__(self, vocab_path, batch_size=2):
-        with open(vocab_path, 'r') as f:
-            text = f.read()
+    with open(text_path, 'r') as f:
+        text = f.read().lower()
 
-        self.word_id = {w: i for i, w in enumerate(text.split('\n'))}
-        self.id_word = {i: w for w, i in self.word_id.items()}
-        self.batch_size = batch_size
-        self.sample_num = {}
+    signals = {'context': [], 'query': [], 'candidates': [], 'answer': []}
+    # parsing sample
+    samples = text.split("\n\n")[:-1] # ignore the last '\n'
+    for sample in samples:
+        lines = sample.split("\n")
+        assert len(lines) == 21
 
-    # def load_vocab(self, vocab_path):
-    #     with open(vocab_path, 'r') as f:
-    #         text = f.read()
+        context = ""
+        for i in range(20):
+            offset = (i + 1) // 10 + 2
+            context += lines[i][offset:] + ' '
 
-    #     self.word_id = {w: i for i, w in enumerate(text.split('\n'))}
-    #     self.id_word = {i: w for w, i in self.word_id.items()}
-    #     return self.word_id, self.id_word
+        # parsing query, candidates, answer
+        query_ans_cand = lines[20].replace("\t\t", "\t").split("\t")
+        assert len(query_ans_cand) == 3
+        query = query_ans_cand[0][3:] # ignore the characters '21 ' in the begining
+        answer = query_ans_cand[1]
+        candidates = query_ans_cand[2].split('|')[:10]
+        assert len(candidates) == 10
+        ans_index = candidates.index(answer)
 
-    def word_to_id(self, word):
-        """ return a id correspondent to a word, or id to UNK if word not in vocabulary"""
-        return self.word_id.get(word, self.word_id[UNK])
+        signals['context'].append(context)
+        signals['query'].append(query)
+        signals['candidates'].append(candidates)
+        signals['answer'].append(ans_index) # store the index of answer instead of answer itself.
+    return signals
 
-    def words_to_ids(self, s):
-        """ return a id representation of a sentence"""
-        return np.array([self.word_to_id(word) for word in s.split(' ')], dtype=np.int32)
+def merge_query_context(signals, separator=SEP):
+    signals['query_context'] = []
+    for query, context in zip(signals['query'], signals['context']):
+        signals['query_context'].append(query + ' ' + separator + ' ' + context)
+    del signals['query']
+    del signals['context']
+    return signals
 
-    def id_to_word(self, id):
-        return self.id_word.get(id, UNK)
+def prepare_signals(text_path):
+    # preprocess signals
+    signals = load_cbt(text_path)
+    signals = merge_query_context(signals)
+    return signals
 
-    def ids_to_words(self, ids):
-        # works only for 1-dim nparray
-        return ' '.join([self.id_to_word(id) for id in ids])
+def create_vocabulary(input_path, output_path):
+    """ Parse the file and create vocabulary"""
+    with open(input_path, 'r') as f:
+        text = f.read().lower()
 
-    def load_cbt(self, text_path, convert_word_to_id=False):
-        """
-        Read CBT dataset and return a list of tuples in the form of
-        (context, query, candidates, answer).
-        """
-        with open(text_path, 'r') as f:
-            text = f.read().lower()
+    vocab = set()
+    vocab.add(SEP)
+    vocab.add(PAD)
+    samples = text.split("\n\n")[:-1] # ignore the last '\n'
+    for sample in samples:
+        lines = sample.split("\n")
+        assert len(lines) == 21
 
-        signals = {'context': [], 'query': [], 'candidates': [], 'answer': []}
-        # parsing sample
-        samples = text.split("\n\n")[:-1] # ignore the last '\n'
-        for sample in samples:
-            lines = sample.split("\n")
-            assert len(lines) == 21
+        context = ""
+        for i in range(20):
+            offset = (i + 1) // 10 + 2
+            context += lines[i][offset:] + ' '
 
-            context = ""
-            for i in range(20):
-                offset = (i + 1) // 10 + 2
-                context += lines[i][offset:] + ' '
+        # parsing query, candidates, answer
+        query_ans_cand = lines[20].replace("\t\t", "\t").split("\t")
+        assert len(query_ans_cand) == 3
+        query = query_ans_cand[0][3:] # ignore the characters '21 ' in the begining
+        answer = query_ans_cand[1]
+        candidates = query_ans_cand[2].split('|')[:10]
+        if len(candidates) != 10:
+            raise ValueError('Sample has %d candidates, 10 required. Sample: %s' \
+                % (len(candidates), sample))
 
-            # parsing query, candidates, answer
-            query_ans_cand = lines[20].replace("\t\t", "\t").split("\t")
-            assert len(query_ans_cand) == 3
-            query = query_ans_cand[0][3:] # ignore the characters '21 ' in the begining
-            answer = query_ans_cand[1]
-            candidates = query_ans_cand[2].split('|')[:10]
-            assert len(candidates) == 10
-            ans_index = candidates.index(answer)
+        denoised_sample = context + ' ' + query + ' ' + answer + ' ' + ' '.join(candidates)
+        for word in denoised_sample.split(' '):
+            vocab.add(word)
 
-            if convert_word_to_id:
-                signals['context'].append(self.words_to_ids(context))
-                signals['query'].append(self.words_to_ids(query))
-                signals['candidates'].append(np.array([self.word_to_id(word) for word in candidates], dtype=np.int32))
-            else:
-                signals['context'].append(context)
-                signals['query'].append(query)
-                signals['candidates'].append(candidates)
-            signals['answer'].append(ans_index) # store the index of answer instead of answer itself.
-        return signals
-
-    def merge_query_context(self, signals, separator=SEP, convert_word_to_id=False):
-        signals['query_context'] = []
-        for query, context in zip(signals['query'], signals['context']):
-            if convert_word_to_id:
-                query_context = np.concatenate((np.append(query, self.word_to_id(separator)), context), axis=0)
-                signals['query_context'].append(query_context)
-            else:
-                signals['query_context'].append(query + ' ' + separator + ' ' + context)
-        del signals['query']
-        del signals['context']
-        return signals
-
-    def prepare_dataset(self, text_path, name='train'):
-        """ return a tf.data.Dataset instance """
-        signals = self.load_cbt(text_path)
-        signals = self.merge_query_context(signals)
-        self.sample_num[name] = len(signals['answer'])
-        dataset = tf.data.Dataset.from_tensor_slices((signals['query_context'], signals['answer'], signals['candidates']))
-        dataset = dataset.shuffle(buffer_size=10000)
-        # dataset = dataset.padded_batch(1, padded_shapes=[None])
-        dataset = dataset.batch(self.batch_size)
-        return dataset
-
-    def convert_to_tensors(self, batch_data):
-        """
-        Convert a list of variable length string to a numpy array,
-        converting words to ids automatically and padding may apply for batch_query_context
-        batch_data: (batch_query_context, batch_answer, batch_candidates)
-        """
-        assert len(batch_data) == 3
-        # deal with query_context
-        qc_list = []
-        max_length = 0 
-        for query_context in batch_data[0]:
-            qc_nparray = np.array([self.word_to_id(word) for word in query_context.decode('utf-8').split(' ')], dtype=np.int32)
-            max_length = max(max_length, len(qc_nparray))
-            qc_list.append(qc_nparray[None, :])     # [1, num_of_words]
-
-        # add padding to query_context numpy array to make them same length
-        pad_id = self.word_to_id(PAD)
-        padded_qc_list = []
-        for qc_nparray in qc_list:
-            pad_size = max_length - qc_nparray.shape[1]
-            padded_qc_nparray = np.append(qc_nparray, [[pad_id] * pad_size], axis=1) # [1, num_of_words + num_of_padding]
-            padded_qc_list.append(padded_qc_nparray)
-
-        converted_batch_query_context = np.concatenate(padded_qc_list, axis=0)
-
-        # deal with answers
-        # converted_batch_answer = np.array([self.word_to_id(answer.decode('utf-8')) for answer in batch_data[1]], dtype=np.int32)
-
-        # deal with candidates
-        cand_list = []
-        for candidates in batch_data[2]:
-            cand_array = np.array([self.word_to_id(candidate.decode('utf-8')) for candidate in candidates], dtype=np.int32)
-            cand_list.append(cand_array[None, :])
-        converted_batch_candidates = np.concatenate(cand_list, axis=0)
-
-        return converted_batch_query_context, batch_data[1], converted_batch_candidates
-
-    @staticmethod
-    def create_vocabulary(input_path, output_path):
-        """ Parse the file and create vocabulary"""
-        with open(input_path, 'r') as f:
-            text = f.read().lower()
-
-        vocab = set()
-        vocab.add(UNK)
-        vocab.add(SEP)
-        vocab.add(PAD)
-        samples = text.split("\n\n")[:-1] # ignore the last '\n'
-        for sample in samples:
-            lines = sample.split("\n")
-            assert len(lines) == 21
-
-            context = ""
-            for i in range(20):
-                offset = (i + 1) // 10 + 2
-                context += lines[i][offset:] + ' '
-
-            # parsing query, candidates, answer
-            query_ans_cand = lines[20].replace("\t\t", "\t").split("\t")
-            assert len(query_ans_cand) == 3
-            query = query_ans_cand[0][3:] # ignore the characters '21 ' in the begining
-            answer = query_ans_cand[1]
-            candidates = query_ans_cand[2].split('|')[:10]
-            if len(candidates) != 10:
-                raise ValueError('Sample has %d candidates, 10 required. Sample: %s' \
-                    % (len(candidates), sample))
-
-            denoised_sample = context + ' ' + query + ' ' + answer + ' ' + ' '.join(candidates)
-            for word in denoised_sample.split(' '):
-                vocab.add(word)
-
-        # save vocabulary to file
-        print("Vocab size for %s: %d" % (input_path, len(vocab)))
-        with open(output_path, 'w') as f:
-            for word in vocab:
-                f.write(word + '\n')
+    # save vocabulary to file
+    print("Vocab size for %s: %d" % (input_path, len(vocab)))
+    with open(output_path, 'w') as f:
+        f.write('\n'.join(vocab))
 
