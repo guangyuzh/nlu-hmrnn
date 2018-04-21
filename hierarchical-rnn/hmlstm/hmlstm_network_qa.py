@@ -420,7 +420,7 @@ class HMLSTMNetworkQa(object):
             self.load_variables(variable_path)
 
         # define data iterator
-        total_steps = math.ceil(cbt.sample_num / cbt.batch_size)
+        total_steps = math.ceil(cbt.sample_num['train'] / cbt.batch_size)
         train_iter = train_data.make_initializable_iterator()
         next_sample = train_iter.get_next()
         # writer = tf.summary.FileWriter("./tflog/", self._session.graph)

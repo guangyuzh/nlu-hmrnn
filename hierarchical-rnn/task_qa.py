@@ -28,8 +28,8 @@ if args.dev:
 
 # Prepare dataset
 cbt = CBTDataset(vocab_path=VOCABULARY_PATH, batch_size=BATCH_SIZE)
-train_dataset = cbt.prepare_dataset(TRAIN_DATA_PATH) # return a tf.data.Dataset instance
-valid_dataset = cbt.prepare_dataset(VALID_DATA_PATH)
+train_dataset = cbt.prepare_dataset(TRAIN_DATA_PATH, name='train') # return a tf.data.Dataset instance
+valid_dataset = cbt.prepare_dataset(VALID_DATA_PATH, name='valid')
 
 # Prepare network
 network = HMLSTMNetworkQa(output_size=CANDIDATE_NUM, input_size=INPUT_EMBED_SIZE, embed_size=INPUT_EMBED_SIZE, 

@@ -22,6 +22,7 @@ class CBTDataset(object):
         self.word_id = {w: i for i, w in enumerate(text.split('\n'))}
         self.id_word = {i: w for w, i in self.word_id.items()}
         self.batch_size = batch_size
+        self.sample_num = {}
 
     # def load_vocab(self, vocab_path):
     #     with open(vocab_path, 'r') as f:
@@ -84,7 +85,6 @@ class CBTDataset(object):
                 signals['query'].append(query)
                 signals['candidates'].append(candidates)
             signals['answer'].append(ans_index) # store the index of answer instead of answer itself.
-        self.sample_num = len(signals['answer'])
         return signals
 
     def merge_query_context(self, signals, separator=SEP, convert_word_to_id=False):
@@ -99,10 +99,11 @@ class CBTDataset(object):
         del signals['context']
         return signals
 
-    def prepare_dataset(self, text_path):
+    def prepare_dataset(self, text_path, name='train'):
         """ return a tf.data.Dataset instance """
         signals = self.load_cbt(text_path)
         signals = self.merge_query_context(signals)
+        self.sample_num[name] = len(signals['answer'])
         dataset = tf.data.Dataset.from_tensor_slices((signals['query_context'], signals['answer'], signals['candidates']))
         dataset = dataset.shuffle(buffer_size=10000)
         # dataset = dataset.padded_batch(1, padded_shapes=[None])
