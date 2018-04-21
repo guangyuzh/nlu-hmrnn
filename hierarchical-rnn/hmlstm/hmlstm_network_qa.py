@@ -390,6 +390,7 @@ class HMLSTMNetworkQa(object):
               variable_path='./hmlstm_ckpt',
               load_vars_from_disk=False,
               save_vars_to_disk=False,
+              valid_after_step=100,
               epochs=3):
         """
         Train the network.
@@ -441,11 +442,11 @@ class HMLSTMNetworkQa(object):
                     _, _loss = self._session.run(ops, feed_dict)
 
                     current_step += 1
-                    if current_step % 100 == 0:
+                    if current_step % valid_after_step == 0:
                         # do a validation
                         valid_accuracy = self.predict(cbt, valid_data)
                         print('step: %6.2f%%, loss: %f, valid_accuracy: %f' \
-                            % (current_step / total_steps * 100, _loss, accuracy))
+                            % (current_step / total_steps * 100, _loss, valid_accuracy))
                 except tf.errors.OutOfRangeError: 
                     # end of one epoch
                     break
@@ -483,7 +484,7 @@ class HMLSTMNetworkQa(object):
 
         # prepare metric
         accuracy, update_op = tf.metrics.accuracy(labels, predictions)
-        sess.run(tf.local_variable_initializer())
+        self._session.run(tf.local_variables_initializer())
 
         while True:
             try:
