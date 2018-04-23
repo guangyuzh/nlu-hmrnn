@@ -19,33 +19,25 @@ class CBTDataset(object):
         with open(vocab_path, 'r') as f:
             text = f.read()
 
-        self.word_id = {w: i for i, w in enumerate(text.split('\n'))}
-        self.id_word = {i: w for w, i in self.word_id.items()}
+        vocab = tf.constant(text.split('\n'))
+        self.table = tf.contrib.lookup.index_table_from_tensor(mapping=vocab)
+        self.reverse_table = tf.contrib.lookup.index_to_string_table_from_tensor(
+                mapping=vocab, default_value='<UNK>')
+
         self.batch_size = batch_size
         self.sample_num = {}
 
-    # def load_vocab(self, vocab_path):
-    #     with open(vocab_path, 'r') as f:
-    #         text = f.read()
+    def lookup(self, data):
+        """
+        Convert word strings to word ids
+        """
+        return self.table.lookup(data)
 
-    #     self.word_id = {w: i for i, w in enumerate(text.split('\n'))}
-    #     self.id_word = {i: w for w, i in self.word_id.items()}
-    #     return self.word_id, self.id_word
-
-    def word_to_id(self, word):
-        """ return a id correspondent to a word, or id to UNK if word not in vocabulary"""
-        return self.word_id.get(word, self.word_id[UNK])
-
-    def words_to_ids(self, s):
-        """ return a id representation of a sentence"""
-        return np.array([self.word_to_id(word) for word in s.split(' ')], dtype=np.int32)
-
-    def id_to_word(self, id):
-        return self.id_word.get(id, UNK)
-
-    def ids_to_words(self, ids):
-        # works only for 1-dim nparray
-        return ' '.join([self.id_to_word(id) for id in ids])
+    def reverse_lookup(self, data):
+        """
+        Convert indexes to words
+        """
+        return self.reverse_table.lookup(data)
 
     def load_cbt(self, text_path, convert_word_to_id=False):
         """

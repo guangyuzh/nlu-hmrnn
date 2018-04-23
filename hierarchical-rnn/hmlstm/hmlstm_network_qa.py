@@ -363,7 +363,7 @@ class HMLSTMNetworkQa(object):
             if self._session is None:
                 self._session = tf.Session()
                 # self._session = tf_debug.LocalCLIDebugWrapperSession(self._session)
-                init = tf.global_variables_initializer()
+                init = [tf.global_variables_initializer(), tf.tables_initializer()]
                 self._session.run(init)
         else:
             self.load_variables(variable_path)
@@ -380,8 +380,7 @@ class HMLSTMNetworkQa(object):
             while True:
                 try:
                     # do one training step
-                    sample = self._session.run(next_sample)
-                    batch_qc, batch_out, batch_cand = cbt.convert_to_tensors(sample)
+                    batch_qc, batch_out, batch_cand = self._session.run(next_sample)
                     ops = [optim, loss]
                     feed_dict = {
                         self.batch_qc:   np.swapaxes(batch_qc, 0, 1),   # [T, B]
@@ -437,8 +436,7 @@ class HMLSTMNetworkQa(object):
 
         while True:
             try:
-                sample = self._session.run(next_sample)
-                batch_qc, batch_out, batch_cand = cbt.convert_to_tensors(sample)
+                batch_qc, batch_out, batch_cand = self._session.run(next_sample)
                 feed_dict = {
                     self.batch_qc:   np.swapaxes(batch_qc, 0, 1),   # [T, B]
                     self.batch_cand: batch_cand,                    # [B, output_size]
