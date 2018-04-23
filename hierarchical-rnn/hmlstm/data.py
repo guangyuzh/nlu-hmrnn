@@ -120,7 +120,6 @@ class CBTDataset(object):
             text = f.read().lower()
 
         vocab = set()
-        vocab.add(UNK)
         vocab.add(SEP)
         vocab.add(PAD)
         samples = text.split("\n\n")[:-1] # ignore the last '\n'
@@ -150,6 +149,5 @@ class CBTDataset(object):
         # save vocabulary to file
         print("Vocab size for %s: %d" % (input_path, len(vocab)))
         with open(output_path, 'w') as f:
-            for word in vocab:
-                f.write(word + '\n')
+            f.write('\n'.join(vocab))
 
