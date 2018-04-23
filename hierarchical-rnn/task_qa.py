@@ -1,14 +1,21 @@
 from hmlstm import HMLSTMNetworkQa, CBTDataset
 import argparse
 
+# hyper parameters
+INPUT_EMBED_SIZE = 128
+NUM_LAYER = 2
+HIDDEN_STATE_SIZES = 1024
+OUT_HIDDEN_STATE_SIZES = 1024
+
+# constants
 VOCABULARY_PATH = './CBTest/vocab/CBT_CN_vocab.txt'
 TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_train.txt'
 VALID_DATA_PATH = './CBTest/data/cbtest_CN_valid_2000ex.txt'
 TEST_DATA_PATH = './CBTest/data/cbtest_CN_test_2500ex.txt'
-INPUT_EMBED_SIZE = 128
 CANDIDATE_NUM = 10
 BATCH_SIZE = 32
-VALID_AFTER_STEP = 100
+SHOW_STAT_AFTER_STEP = 100
+VALID_AFTER_STEP = 300
 EPOCHS = 3
 
 # parsing arguments
@@ -23,7 +30,8 @@ if args.dev:
     TRAIN_DATA_PATH = './CBTest/data/cbtest_CN_quick_dev_6ex.txt'
     VALID_DATA_PATH = TRAIN_DATA_PATH
     BATCH_SIZE = 2
-    VALID_AFTER_STEP = 1
+    VALID_AFTER_STEP = 3
+    SHOW_STAT_AFTER_STEP = 1
     EPOCHS = 3
 
 # Prepare dataset
@@ -32,15 +40,20 @@ train_dataset = cbt.prepare_dataset(TRAIN_DATA_PATH, name='train') # return a tf
 valid_dataset = cbt.prepare_dataset(VALID_DATA_PATH, name='valid')
 
 # Prepare network
-network = HMLSTMNetworkQa(output_size=CANDIDATE_NUM, input_size=INPUT_EMBED_SIZE, embed_size=INPUT_EMBED_SIZE, 
-                        out_hidden_size=1024, hidden_state_sizes=1024, num_layers=2,
-                        task='classification')
+network = HMLSTMNetworkQa(
+        input_size=INPUT_EMBED_SIZE,
+        output_size=CANDIDATE_NUM,
+        num_layers=NUM_LAYER, 
+        hidden_state_sizes=HIDDEN_STATE_SIZES,
+        out_hidden_size=OUT_HIDDEN_STATE_SIZES,
+        embed_size=INPUT_EMBED_SIZE,  
+        task='classification')
 
 if not args.predict:
     # Training
     network.train(cbt, train_dataset, valid_dataset, save_vars_to_disk=True, 
                   load_vars_from_disk=False, variable_path='./qa_variable',
-                  valid_after_step=VALID_AFTER_STEP, epochs=EPOCHS)
+                  valid_after_step=VALID_AFTER_STEP, show_stat_after_step=SHOW_STAT_AFTER_STEP, epochs=EPOCHS)
 # else:
     # Predicting
 

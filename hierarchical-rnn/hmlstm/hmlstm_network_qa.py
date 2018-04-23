@@ -7,7 +7,7 @@ import tensorflow as tf
 import math
 import numpy as np
 import sys
-
+import time
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -339,7 +339,8 @@ class HMLSTMNetworkQa(object):
               variable_path='./hmlstm_ckpt',
               load_vars_from_disk=False,
               save_vars_to_disk=False,
-              valid_after_step=100,
+              valid_after_step=300,
+              show_stat_after_step=100,
               epochs=3):
         """
         Train the network.
@@ -369,7 +370,6 @@ class HMLSTMNetworkQa(object):
             self.load_variables(variable_path)
 
         # define data iterator
-        total_steps = math.ceil(cbt.sample_num['train'] / cbt.batch_size)
         train_iter = train_data.make_initializable_iterator()
         next_sample = train_iter.get_next()
         # writer = tf.summary.FileWriter("./tflog/", self._session.graph)
@@ -377,10 +377,11 @@ class HMLSTMNetworkQa(object):
             print('Epoch %d' % epoch)
             current_step = 0
             self._session.run(train_iter.initializer)
+            start_time = time.time()
             while True:
                 try:
                     # do one training step
-                    batch_qc, batch_out, batch_cand = self._session.run(next_sample)
+                    batch_qc, batch_cand, batch_out = self._session.run(next_sample)
                     ops = [optim, loss]
                     feed_dict = {
                         self.batch_qc:   np.swapaxes(batch_qc, 0, 1),   # [T, B]
@@ -393,8 +394,13 @@ class HMLSTMNetworkQa(object):
                     if current_step % valid_after_step == 0:
                         # do a validation
                         valid_accuracy = self.predict(cbt, valid_data)
-                        print('step: %6.2f%%, loss: %f, valid_accuracy: %f' \
-                            % (current_step / total_steps * 100, _loss, valid_accuracy))
+                        print('step: %5d, loss: %f, time: %.2f seconds, valid_accuracy: %.4f' \
+                            % (current_step, _loss, time.time() - start_time, valid_accuracy))
+                        start_time = time.time()
+                    elif current_step % show_stat_after_step == 0:
+                        print('step: %5d, loss: %f, time: %.2f seconds' \
+                            % (current_step, _loss, time.time() - start_time))
+                        start_time = time.time()
                 except tf.errors.OutOfRangeError: 
                     # end of one epoch
                     break
@@ -436,7 +442,7 @@ class HMLSTMNetworkQa(object):
 
         while True:
             try:
-                batch_qc, batch_out, batch_cand = self._session.run(next_sample)
+                batch_qc, batch_cand, batch_out = self._session.run(next_sample)
                 feed_dict = {
                     self.batch_qc:   np.swapaxes(batch_qc, 0, 1),   # [T, B]
                     self.batch_cand: batch_cand,                    # [B, output_size]
