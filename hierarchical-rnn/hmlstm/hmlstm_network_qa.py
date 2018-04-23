@@ -121,21 +121,6 @@ class HMLSTMNetworkQa(object):
             embed_shape = [sum(self._hidden_state_sizes), self._embed_size]
             vs.get_variable('embed_weights', embed_shape, dtype=tf.float32)
 
-#    def _initialize_output_variables(self):
-#        with vs.variable_scope('output_module_vars'):
-#            vs.get_variable('b1', [1, self._out_hidden_size], dtype=tf.float32)
-#            vs.get_variable('b2', [1, self._out_hidden_size], dtype=tf.float32)
-#            vs.get_variable('b3', [1, self._output_size], dtype=tf.float32)
-#            vs.get_variable(
-#                'w1', [self._embed_size, self._out_hidden_size],
-#                dtype=tf.float32)
-#            vs.get_variable(
-#                'w2', [self._out_hidden_size, self._out_hidden_size],
-#                dtype=tf.float32)
-#            vs.get_variable(
-#                'w3', [self._out_hidden_size, self._output_size],
-#                dtype=tf.float32)
-#
     def load_variables(self, path='./hmlstm_ckpt'):
         if self._session is None:
             self._session = tf.Session()
@@ -201,42 +186,6 @@ class HMLSTMNetworkQa(object):
 
         return embedding
 
-#    def output_module(self, embedding, outcome):
-#        '''
-#        embedding: [B, E]
-#        outcome: [B, output_size]
-#
-#        loss: [B, output_size] or [B, 1]
-#        prediction: [B, output_size]
-#        '''
-#        with vs.variable_scope('output_module_vars', reuse=True):
-#            b1 = vs.get_variable('b1')
-#            b2 = vs.get_variable('b2')
-#            b3 = vs.get_variable('b3')
-#            w1 = vs.get_variable('w1')
-#            w2 = vs.get_variable('w2')
-#            w3 = vs.get_variable('w3')
-#
-#            # feed forward network
-#            # first layer
-#            l1 = tf.nn.tanh(tf.matmul(embedding, w1) + b1)
-#
-#            # second layer
-#            l2 = tf.nn.tanh(tf.matmul(l1, w2) + b2)
-#
-#            # the loss function used below
-#            # softmax_cross_entropy_with_logits
-#            prediction = tf.add(tf.matmul(l2, w3), b3, name='prediction')
-#
-#            loss_args = {'logits': prediction, 'labels': outcome}
-#            loss = self._loss_function(**loss_args)
-#
-#            if self._task == 'classification':
-#                # due to nature of classification loss function
-#                loss = tf.expand_dims(loss, -1)
-#
-#        return loss, prediction
-#
     def output_module_qa(self, embedding, batch_cand_embed, outcome):
         '''
         embedding:          [B, E]                  query_context embedding

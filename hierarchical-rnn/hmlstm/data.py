@@ -104,48 +104,22 @@ class CBTDataset(object):
         signals = self.load_cbt(text_path)
         signals = self.merge_query_context(signals)
         self.sample_num[name] = len(signals['answer'])
-        dataset = tf.data.Dataset.from_tensor_slices((signals['query_context'], signals['answer'], signals['candidates']))
-        dataset = dataset.shuffle(buffer_size=10000)
-        # dataset = dataset.padded_batch(1, padded_shapes=[None])
-        dataset = dataset.batch(self.batch_size)
-        return dataset
+        qc_ds = tf.data.Dataset.from_tensor_slices(signals['query_context'])
+        qc_ds = qc_ds.map(lambda str: tf.string_split([str]).values)
+        qc_ds = qc_ds.map(lambda word: self.lookup(word))
 
-    def convert_to_tensors(self, batch_data):
-        """
-        Convert a list of variable length string to a numpy array,
-        converting words to ids automatically and padding may apply for batch_query_context
-        batch_data: (batch_query_context, batch_answer, batch_candidates)
-        """
-        assert len(batch_data) == 3
-        # deal with query_context
-        qc_list = []
-        max_length = 0 
-        for query_context in batch_data[0]:
-            qc_nparray = np.array([self.word_to_id(word) for word in query_context.decode('utf-8').split(' ')], dtype=np.int32)
-            max_length = max(max_length, len(qc_nparray))
-            qc_list.append(qc_nparray[None, :])     # [1, num_of_words]
+        cand_ds = tf.data.Dataset.from_tensor_slices(signals['candidates'])
+        cand_ds = cand_ds.map(lambda cand: self.lookup(cand))
 
-        # add padding to query_context numpy array to make them same length
-        pad_id = self.word_to_id(PAD)
-        padded_qc_list = []
-        for qc_nparray in qc_list:
-            pad_size = max_length - qc_nparray.shape[1]
-            padded_qc_nparray = np.append(qc_nparray, [[pad_id] * pad_size], axis=1) # [1, num_of_words + num_of_padding]
-            padded_qc_list.append(padded_qc_nparray)
+        ans_ds = tf.data.Dataset.from_tensor_slices(signals['answer'])
 
-        converted_batch_query_context = np.concatenate(padded_qc_list, axis=0)
-
-        # deal with answers
-        # converted_batch_answer = np.array([self.word_to_id(answer.decode('utf-8')) for answer in batch_data[1]], dtype=np.int32)
-
-        # deal with candidates
-        cand_list = []
-        for candidates in batch_data[2]:
-            cand_array = np.array([self.word_to_id(candidate.decode('utf-8')) for candidate in candidates], dtype=np.int32)
-            cand_list.append(cand_array[None, :])
-        converted_batch_candidates = np.concatenate(cand_list, axis=0)
-
-        return converted_batch_query_context, batch_data[1], converted_batch_candidates
+        ds = tf.data.Dataset.zip((qc_ds, cand_ds, ans_ds))
+        ds = ds.shuffle(buffer_size=10000)
+        pad_index = self.lookup(tf.constant('<PAD>'))
+        ds = ds.padded_batch(batch_size=self.batch_size,
+                padded_shapes=([None], [10], []),               # 2nd and 3rd component (cand & ans) not padded
+                padding_values=(pad_index, np.int64(-1), 0))    # 2nd and 3rd component (cand & ans) not padded
+        return ds
 
     @staticmethod
     def create_vocabulary(input_path, output_path):
