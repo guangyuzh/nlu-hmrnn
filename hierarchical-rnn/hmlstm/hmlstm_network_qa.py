@@ -33,6 +33,7 @@ class HMLSTMNetworkQa(object):
                  hidden_state_sizes=50,
                  out_hidden_size=100,
                  embed_size=100,
+                 learning_rate=1e-3,
                  vocab_size=55000,
                  task='regression'):
         """
@@ -65,6 +66,7 @@ class HMLSTMNetworkQa(object):
         self._task = task
         self._output_size = output_size
         self._vocab_size = vocab_size
+        self._learning_rate = learning_rate
 
         if type(hidden_state_sizes) is list \
             and len(hidden_state_sizes) != num_layers:
@@ -98,7 +100,7 @@ class HMLSTMNetworkQa(object):
         self.batch_out = tf.placeholder(
             tf.int32, shape=batch_out_shape, name='batch_out')
 
-        self._optimizer = tf.train.AdamOptimizer(1e-3)
+        self._optimizer = tf.train.AdamOptimizer(self._learning_rate)
 
         self._initialize_input_module_variables()
 #        self._initialize_output_variables()

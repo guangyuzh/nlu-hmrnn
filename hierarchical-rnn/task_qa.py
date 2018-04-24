@@ -6,6 +6,7 @@ INPUT_EMBED_SIZE = 128
 NUM_LAYER = 2
 HIDDEN_STATE_SIZES = 1024
 OUT_HIDDEN_STATE_SIZES = 1024
+LEARNING_RATE = 1e-4
 
 # constants
 VOCABULARY_PATH = './CBTest/vocab/CBT_CN_vocab.txt'
@@ -14,7 +15,7 @@ VALID_DATA_PATH = './CBTest/data/cbtest_CN_valid_2000ex.txt'
 TEST_DATA_PATH = './CBTest/data/cbtest_CN_test_2500ex.txt'
 CANDIDATE_NUM = 10
 BATCH_SIZE = 32
-SHOW_STAT_AFTER_STEP = 100
+SHOW_STAT_AFTER_STEP = 50
 VALID_AFTER_STEP = 300
 EPOCHS = 3
 
@@ -46,13 +47,14 @@ network = HMLSTMNetworkQa(
         num_layers=NUM_LAYER, 
         hidden_state_sizes=HIDDEN_STATE_SIZES,
         out_hidden_size=OUT_HIDDEN_STATE_SIZES,
-        embed_size=INPUT_EMBED_SIZE,  
+        embed_size=INPUT_EMBED_SIZE,
+        learning_rate=LEARNING_RATE,  
         task='classification')
 
 if not args.predict:
     # Training
     network.train(cbt, train_dataset, valid_dataset, save_vars_to_disk=True, 
-                  load_vars_from_disk=False, variable_path='./qa_variable',
+                  load_vars_from_disk=False, variable_path='./qa_variable_2',
                   valid_after_step=VALID_AFTER_STEP, show_stat_after_step=SHOW_STAT_AFTER_STEP, epochs=EPOCHS)
 # else:
     # Predicting
