@@ -2,6 +2,8 @@ from sklearn.metrics import precision_recall_fscore_support
 import numpy as np
 from collections import defaultdict
 import glob
+import pickle
+import time, datetime
 
 labelize = lambda bounds: np.array(list(bounds.strip()))
 
@@ -42,8 +44,9 @@ class EvaluateBoundary:
             self.prec_recall_f1[l] = (precision, recall, f1, support)
 
     def viz(self):
-        # TODO: plot fancy figures
         print(self.prec_recall_f1)
+        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%m-%d-%H%M%S')
+        pickle.dump(self.prec_recall_f1, open("eval_{}.pkl".format(timestamp), 'wb'))
 
 
 eval_label = EvaluateBoundary("corpora/boundaries.txt", "layer_*.txt")
