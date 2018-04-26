@@ -18,8 +18,14 @@ path = "../treebank/"
 # Clear previous prediction outputs
 _rm_obsolete_pred(path)
 
+tot_loss = 0
 for b in batches_in:
-    predictions = network.predict(b, variable_path='./text8')
+    predictions, loss = network.predict(b, variable_path='./text8', return_loss=True)
+    tot_loss += loss
     boundaries = network.predict_boundaries(b, variable_path='../treebank/corpora/sentences.txt')
     # visualize boundaries
     save_boundaries(get_text(b[0]), get_text(predictions[0]), boundaries[0], layers=[0, 1, 2], path=path)
+tot_loss /= len(batches_in)
+
+with open("loss.tmp", 'w') as f:
+    f.write(tot_loss)

@@ -4,8 +4,7 @@ from collections import defaultdict
 import glob
 import pickle
 import time, datetime
-
-labelize = lambda bounds: np.array(list(bounds.strip()))
+import os
 
 
 class EvaluateBoundary:
@@ -18,13 +17,15 @@ class EvaluateBoundary:
         self._get_labels()
 
     def _get_labels(self):
+        labelize = lambda bounds: np.array(list(bounds.strip()))
+
         with open(self.file_truth, 'r') as f:
-            self.truth = np.array(labelize(f.read()))
+            self.truth = labelize(f.read())
 
         self.pred_layers = defaultdict()
         for f in glob.glob(self.file_layers_predict):
             with open(f, 'r') as file:
-                self.pred_layers[f] = np.array(labelize(file.read()))
+                self.pred_layers[f] = labelize(file.read())
                 if len(self.pred_layers[f]) > len(self.truth):
                     raise Exception("More predicted points than truth.")
 
@@ -43,7 +44,18 @@ class EvaluateBoundary:
                 self.truth[:len(self.pred_layers[l])], self.pred_layers[l], average=average)
             self.prec_recall_f1[l] = (precision, recall, f1, support)
 
-    def viz(self):
+        self._read_loss()
+
+    def _read_loss(self):
+        try:
+            with open("../hierarchical-rnn/loss.tmp", 'r') as f:
+                loss = float(f.read())
+            os.remove("../hierarchical-rnn/loss.tmp")
+        except:
+            raise
+        self.prec_recall_f1["bpc"] = loss
+
+    def save_eval(self):
         print(self.prec_recall_f1)
         timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%m-%d-%H%M%S')
         pickle.dump(self.prec_recall_f1, open("eval_{}.pkl".format(timestamp), 'wb'))
@@ -51,4 +63,4 @@ class EvaluateBoundary:
 
 eval_label = EvaluateBoundary("corpora/boundaries.txt", "layer_*.txt")
 eval_label.evaluate()
-eval_label.viz()
+eval_label.save_eval()

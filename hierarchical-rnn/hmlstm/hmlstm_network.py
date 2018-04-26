@@ -367,7 +367,7 @@ class HMLSTMNetwork(object):
         self.save_variables(variable_path)
 
     def predict(self, batch, variable_path='./hmlstm_ckpt',
-                return_gradients=False):
+                return_gradients=False, return_loss=False):
         """
         Make predictions.
 
@@ -401,14 +401,16 @@ class HMLSTMNetwork(object):
         })
 
         # for computing loss/BPC only
-        batch_in = np.array([batch[0][:-1, :]])
-        batch_out = np.array([batch[0][1:, :]])
-        feed_dict = {
-            self.batch_in: np.swapaxes(batch_in, 0, 1),
-            self.batch_out: np.swapaxes(batch_out, 0, 1),
-        }
-        _, _loss = self._session.run([optim, loss], feed_dict)
-        print('loss:', _loss)
+        if return_loss:
+            batch_in = np.array([batch[0][:-1, :]])
+            batch_out = np.array([batch[0][1:, :]])
+            feed_dict = {
+                self.batch_in: np.swapaxes(batch_in, 0, 1),
+                self.batch_out: np.swapaxes(batch_out, 0, 1),
+            }
+            _, _loss = self._session.run([optim, loss], feed_dict)
+            print('loss:', _loss)
+            return np.swapaxes(_predictions, 0, 1), loss
 
         if return_gradients:
             return tuple(np.swapaxes(r, 0, 1) for

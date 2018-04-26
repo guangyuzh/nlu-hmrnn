@@ -10,6 +10,6 @@ text8.*
 *.png
 .idea/
 *.pkl
-*.test
+*.tmp
 
 corpora/treebank/
