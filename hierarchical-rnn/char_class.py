@@ -12,7 +12,7 @@ network = HMLSTMNetwork(output_size=OUTPUT_SIZE, input_size=INPUT_SIZE, embed_si
                         task='classification')
 
 network.train(batches_in[:-1], batches_out[:-1], save_vars_to_disk=True, 
-              load_vars_from_disk=False, variable_path='./text8', epochs=3)
+              load_vars_from_disk=False, variable_path='./text8', epochs=EPOCHS)
 
 predictions = network.predict(batches_in[-1], variable_path='./text8')
 boundaries = network.predict_boundaries(batches_in[-1], variable_path='./text8')

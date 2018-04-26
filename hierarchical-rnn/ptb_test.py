@@ -30,4 +30,4 @@ for b in batches_in:
 tot_loss /= len(batches_in)
 
 with open("loss.tmp", 'w') as f:
-    f.write(tot_loss)
+    f.write(str(tot_loss))

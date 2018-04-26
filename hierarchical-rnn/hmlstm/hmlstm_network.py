@@ -410,7 +410,7 @@ class HMLSTMNetwork(object):
             }
             _, _loss = self._session.run([optim, loss], feed_dict)
             print('loss:', _loss)
-            return np.swapaxes(_predictions, 0, 1), loss
+            return np.swapaxes(_predictions, 0, 1), _loss
 
         if return_gradients:
             return tuple(np.swapaxes(r, 0, 1) for
