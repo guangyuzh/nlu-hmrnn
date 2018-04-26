@@ -9,5 +9,6 @@ text8.*
 *.meta
 *.png
 .idea/
+*.pkl
 
 corpora/treebank/
