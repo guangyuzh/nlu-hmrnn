@@ -1,0 +1,20 @@
+default: &default_params
+    batch_size: 20
+    num_batches: 1500
+    truncate_len: 1000
+    step_size: 500
+    learning_rate: 1e-4
+    num_layers: 3
+    output_size: 27
+    input_size: 27
+    embed_size: 2048
+    out_hidden_size: 1024
+    hidden_state_sizes: 1024
+    epochs: 3
+
+large_batch:
+    <<: *default_params
+    batch_size: 16
+    num_batches: 2500
+    learning_rate: 5e-4
+    epochs: 2

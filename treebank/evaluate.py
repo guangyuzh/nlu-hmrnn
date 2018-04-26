@@ -9,7 +9,8 @@ import os
 
 class EvaluateBoundary:
     """
-    you guess what
+    Metrics: precision/recall, F1
+    Ground-truth: Penn Treebank
     """
     def __init__(self, file_truth, file_layers_predict):
         self.file_truth = file_truth
