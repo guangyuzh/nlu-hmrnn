@@ -19,7 +19,7 @@ python3 -u ptb_test.py > logs/ptb_test.log
 
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 mkdir -p ../backup/$TIMESTAMP
-cp text8.[dim]* ../backup/$TIMESTAMP/
+cp checkpoint text8.[dim]* ../backup/$TIMESTAMP/
 
 cd ../treebank
 python3 evaluate.py > logs/ptb_eval.log

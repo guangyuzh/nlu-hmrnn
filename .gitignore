@@ -11,5 +11,6 @@ text8.*
 .idea/
 *.pkl
 *.tmp
+backup/
 
 corpora/treebank/
