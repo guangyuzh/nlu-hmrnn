@@ -1,5 +1,6 @@
 from hmlstm import HMLSTMNetwork, prepare_inputs, get_text, save_boundaries
 import os, glob
+from inventory_lm import *
 
 
 def _rm_obsolete_pred(path):
@@ -7,11 +8,12 @@ def _rm_obsolete_pred(path):
         os.remove(f)
 
 
-batches_in, batches_out = prepare_inputs(batch_size=1, truncate_len=1000,
-                                         step_size=1000, text_path='../treebank/corpora/sentences.txt')
+batches_in, batches_out = prepare_inputs(batch_size=1,
+                                         truncate_len=TRUNCATE_LEN, step_size=TRUNCATE_LEN,
+                                         text_path='../treebank/corpora/sentences.txt')
 
-network = HMLSTMNetwork(output_size=27, input_size=27, embed_size=2048,
-                        out_hidden_size=1024, hidden_state_sizes=1024,
+network = HMLSTMNetwork(output_size=OUTPUT_SIZE, input_size=INPUT_SIZE, embed_size=EMBED_SIZE,
+                        out_hidden_size=OUT_HIDDEN_SIZE, hidden_state_sizes=HIDDEN_STATE_SIZES,
                         task='classification')
 
 path = "../treebank/"

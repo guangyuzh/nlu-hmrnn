@@ -1,10 +1,14 @@
 from hmlstm import HMLSTMNetwork, prepare_inputs, get_text, viz_char_boundaries
+from inventory_lm import *
 
-batches_in, batches_out = prepare_inputs(batch_size=20, num_batches=1500, truncate_len=1000, 
-                                         step_size=500, text_path='text8.txt')
-                                         
-network = HMLSTMNetwork(output_size=27, input_size=27, embed_size=2048, 
-                        out_hidden_size=1024, hidden_state_sizes=1024, 
+batches_in, batches_out = prepare_inputs(batch_size=BATCH_SIZE,
+                                         num_batches=NUM_BATCHES,
+                                         truncate_len=TRUNCATE_LEN,
+                                         step_size=STEP_SIZE,
+                                         text_path='text8.txt')
+
+network = HMLSTMNetwork(output_size=OUTPUT_SIZE, input_size=INPUT_SIZE, embed_size=EMBED_SIZE,
+                        out_hidden_size=OUT_HIDDEN_SIZE, hidden_state_sizes=HIDDEN_STATE_SIZES,
                         task='classification')
 
 network.train(batches_in[:-1], batches_out[:-1], save_vars_to_disk=True, 
