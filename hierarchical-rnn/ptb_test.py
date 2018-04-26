@@ -14,6 +14,7 @@ batches_in, batches_out = prepare_inputs(batch_size=1,
 
 network = HMLSTMNetwork(output_size=OUTPUT_SIZE, input_size=INPUT_SIZE, embed_size=EMBED_SIZE,
                         out_hidden_size=OUT_HIDDEN_SIZE, hidden_state_sizes=HIDDEN_STATE_SIZES,
+                        learning_rate=LEARNING_RATE,
                         task='classification')
 
 path = "../treebank/"

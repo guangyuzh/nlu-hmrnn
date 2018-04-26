@@ -9,6 +9,7 @@ batches_in, batches_out = prepare_inputs(batch_size=BATCH_SIZE,
 
 network = HMLSTMNetwork(output_size=OUTPUT_SIZE, input_size=INPUT_SIZE, embed_size=EMBED_SIZE,
                         out_hidden_size=OUT_HIDDEN_SIZE, hidden_state_sizes=HIDDEN_STATE_SIZES,
+                        learning_rate=LEARNING_RATE,
                         task='classification')
 
 network.train(batches_in[:-1], batches_out[:-1], save_vars_to_disk=True, 

@@ -3,12 +3,13 @@ Configurations for character-level language modeling
 """
 
 # Prepare inputs
-BATCH_SIZE = 20
-NUM_BATCHES = 1500
+BATCH_SIZE = 16
+NUM_BATCHES = 2000
 TRUNCATE_LEN = 1000
 STEP_SIZE = 500
 
 # for HMLSTMNetwork
+LEARNING_RATE = 5e-4
 OUTPUT_SIZE = 27
 INPUT_SIZE = 27
 EMBED_SIZE = 2048

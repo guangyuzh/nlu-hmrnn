@@ -30,6 +30,7 @@ class HMLSTMNetwork(object):
                  hidden_state_sizes=50,
                  out_hidden_size=100,
                  embed_size=100,
+                 learning_rate=1e-4,
                  task='regression'):
         """
         HMLSTMNetwork is a class representing hierarchical multiscale
@@ -82,7 +83,7 @@ class HMLSTMNetwork(object):
         self.batch_out = tf.placeholder(
             tf.float32, shape=batch_out_shape, name='batch_out')
 
-        self._optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
+        self._optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         self._initialize_output_variables()
         self._initialize_gate_variables()
         self._initialize_embedding_variables()
