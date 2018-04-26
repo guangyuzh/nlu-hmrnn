@@ -235,6 +235,13 @@ class HMLSTMNetworkQa(object):
 
         return hmlstm
 
+    def create_multicellLSTM(self):
+        def lstm_cell(layer):
+            return tf.contrib.rnn.BasicLSTMCell(self._hidden_state_sizes[layer])
+        stacked_lstm = tf.contrib.rnn.MultiRNNCell(
+            [lstm_cell(l) for l in range(self._num_layers)])
+        return stacked_lstm
+
     def split_out_cell_states(self, accum):
         '''
         accum: [B, H], i.e. [B, sum(h_l) * 2 + num_layers]
@@ -334,6 +341,27 @@ class HMLSTMNetworkQa(object):
         train = self._optimizer.minimize(loss)
         return train, loss, indicators, predictions
 
+    def lstm_graph(self):
+        batch_in = self.input_module(self.batch_qc)     # [#timestep, B, E]                            # [#timestep, B, E]
+        num_steps = tf.shape(batch_in)[0]
+        batch_size = tf.shape(batch_in)[1]
+        lstm = self.create_multicellLSTM()
+        initial_state = state = lstm.zero_state(batch_size, tf.float32)
+
+        for i in range(num_steps):
+            _, state = lstm(batch_in[i], state)
+
+        final_state = state
+        print('Final state shape: ', tf.shape(final_state))
+        gated = self.gate_input(final_state)          # [B, sum(h_l)]
+        embeded = self.embed_input(gated)                       # [B, E]
+        batch_cand_embed = self.input_module(self.batch_cand)   # [B, output_size, E]
+        loss, predictions = self.output_module_qa(embeded, batch_cand_embed, self.batch_out)
+        loss = tf.reduce_mean(loss)
+
+        train = self._optimizer.minimize(loss)
+        return train, loss, None, predictions
+
     def train(self,
               cbt,
               train_data,
@@ -359,7 +387,7 @@ class HMLSTMNetworkQa(object):
         epochs: integer, number of epochs
         """
 
-        optim, loss, _, _ = self._get_graph()
+        optim, loss, _, _ = self._get_graph('LSTM')
 
         # prepare the session and load the network variable if exists
         if not load_vars_from_disk:
@@ -430,7 +458,7 @@ class HMLSTMNetworkQa(object):
         predictions for the batch
         """
         labels = tf.placeholder(tf.int32, shape=(None), name='labels')
-        _, _, _, predictions = self._get_graph()
+        _, _, _, predictions = self._get_graph('LSTM')
         self._load_vars(variable_path)
 
         # prepare dataset pipeline
@@ -490,9 +518,12 @@ class HMLSTMNetworkQa(object):
 
         return np.array(_indicators)
 
-    def _get_graph(self):
+    def _get_graph(self, network='HMRNN'):
         if self._graph is None:
-            self._graph = self.network(reuse=False)
+            if network == 'HMRNN':
+                self._graph = self.network(reuse=False)
+            else if network == 'LSTM'
+                self._graph = self.lstm_graph()
         return self._graph
 
     def _load_vars(self, variable_path):
