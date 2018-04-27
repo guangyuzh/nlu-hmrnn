@@ -237,9 +237,9 @@ class HMLSTMNetworkQa(object):
 
     def create_multicellLSTM(self):
         def lstm_cell(layer):
-            return tf.contrib.rnn.BasicLSTMCell(self._hidden_state_sizes[layer])
+            return tf.contrib.rnn.BasicLSTMCell(self._hidden_state_sizes[layer] // 2, state_is_tuple=False)
         stacked_lstm = tf.contrib.rnn.MultiRNNCell(
-            [lstm_cell(l) for l in range(self._num_layers)])
+            [lstm_cell(l) for l in range(self._num_layers)], state_is_tuple=False)
         return stacked_lstm
 
     def split_out_cell_states(self, accum):
@@ -348,12 +348,11 @@ class HMLSTMNetworkQa(object):
         lstm = self.create_multicellLSTM()
         initial_state = state = lstm.zero_state(batch_size, tf.float32)
 
-        for i in range(num_steps):
-            _, state = lstm(batch_in[i], state)
-
-        final_state = state
-        print('Final state shape: ', tf.shape(final_state))
-        gated = self.gate_input(final_state)          # [B, sum(h_l)]
+        def scan_lstm(accum, elem):
+            _, state = lstm(elem, accum)
+            return state   
+        final_state = tf.scan(scan_lstm, batch_in, initializer=initial_state)[-1]   # [B, H]
+        gated = self.gate_input(final_state)                    # [B, sum(h_l)]
         embeded = self.embed_input(gated)                       # [B, E]
         batch_cand_embed = self.input_module(self.batch_cand)   # [B, output_size, E]
         loss, predictions = self.output_module_qa(embeded, batch_cand_embed, self.batch_out)
@@ -522,7 +521,7 @@ class HMLSTMNetworkQa(object):
         if self._graph is None:
             if network == 'HMRNN':
                 self._graph = self.network(reuse=False)
-            else if network == 'LSTM'
+            elif network == 'LSTM':
                 self._graph = self.lstm_graph()
         return self._graph
 

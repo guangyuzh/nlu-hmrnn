@@ -2,11 +2,11 @@ from hmlstm import HMLSTMNetworkQa, CBTDataset
 import argparse
 
 # hyper parameters
-INPUT_EMBED_SIZE = 128
+INPUT_EMBED_SIZE = 384
 NUM_LAYER = 2
-HIDDEN_STATE_SIZES = 1024
-LEARNING_RATE = 1e-4
-# OUT_HIDDEN_STATE_SIZES = 1024
+HIDDEN_STATE_SIZES = 256
+LEARNING_RATE = 1e-3
+OUT_HIDDEN_STATE_SIZES = 1024
 
 # constants
 VOCABULARY_PATH = './CBTest/vocab/CBT_CN_vocab.txt'
@@ -54,7 +54,7 @@ network = HMLSTMNetworkQa(
 if not args.predict:
     # Training
     network.train(cbt, train_dataset, valid_dataset, save_vars_to_disk=True, 
-                  load_vars_from_disk=False, variable_path='./qa_variable_2',
+                  load_vars_from_disk=False, variable_path='./qa_variable_1e-3',
                   valid_after_step=VALID_AFTER_STEP, show_stat_after_step=SHOW_STAT_AFTER_STEP, epochs=EPOCHS)
 # else:
     # Predicting
