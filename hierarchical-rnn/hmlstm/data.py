@@ -22,7 +22,7 @@ class CBTDataset(object):
         vocab = tf.constant(text.split('\n'))
         self.table = tf.contrib.lookup.index_table_from_tensor(mapping=vocab)
         self.reverse_table = tf.contrib.lookup.index_to_string_table_from_tensor(
-                mapping=vocab, default_value='<UNK>')
+                mapping=vocab, default_value=UNK)
 
         self.batch_size = batch_size
         self.sample_num = {}
@@ -39,7 +39,7 @@ class CBTDataset(object):
         """
         return self.reverse_table.lookup(data)
 
-    def load_cbt(self, text_path, convert_word_to_id=False):
+    def load_cbt(self, text_path):
         """
         Read CBT dataset and return a list of tuples in the form of
         (context, query, candidates, answer).
@@ -68,25 +68,17 @@ class CBTDataset(object):
             assert len(candidates) == 10
             ans_index = candidates.index(answer)
 
-            if convert_word_to_id:
-                signals['context'].append(self.words_to_ids(context))
-                signals['query'].append(self.words_to_ids(query))
-                signals['candidates'].append(np.array([self.word_to_id(word) for word in candidates], dtype=np.int32))
-            else:
-                signals['context'].append(context)
-                signals['query'].append(query)
-                signals['candidates'].append(candidates)
+
+            signals['context'].append(context)
+            signals['query'].append(query)
+            signals['candidates'].append(candidates)
             signals['answer'].append(ans_index) # store the index of answer instead of answer itself.
         return signals
 
-    def merge_query_context(self, signals, separator=SEP, convert_word_to_id=False):
+    def merge_query_context(self, signals, separator=SEP):
         signals['query_context'] = []
         for query, context in zip(signals['query'], signals['context']):
-            if convert_word_to_id:
-                query_context = np.concatenate((np.append(query, self.word_to_id(separator)), context), axis=0)
-                signals['query_context'].append(query_context)
-            else:
-                signals['query_context'].append(query + ' ' + separator + ' ' + context)
+            signals['query_context'].append(query + ' ' + separator + ' ' + context)
         del signals['query']
         del signals['context']
         return signals
