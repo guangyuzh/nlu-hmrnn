@@ -1,4 +1,4 @@
-from hmlstm import HMLSTMNetwork, prepare_inputs, get_text, save_boundaries
+from hmlstm import get_text, save_boundaries
 import os, glob
 from configuration import *
 
@@ -8,10 +8,9 @@ def _rm_obsolete_pred(path):
         os.remove(f)
 
 
-batches_in, batches_out = prepare_inputs(batch_size=hparams.batch_size,
-                                         truncate_len=hparams.truncate_len,
-                                         step_size=hparams.step_size,
-                                         text_path='../treebank/corpora/sentences.txt')
+hparams = select_config()
+batches_in, batches_out = hparams.pre_inputs('../treebank/corpora/sentences.txt')
+network = hparams.gen_network()
 
 path = "../treebank/"
 # Clear previous prediction outputs

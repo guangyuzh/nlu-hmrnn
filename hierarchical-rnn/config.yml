@@ -1,8 +1,10 @@
 default: &default_params
+    # for Preparing data
     batch_size: 20
     num_batches: 1500
     truncate_len: 1000
     step_size: 500
+    # for HM-LSTM nets
     learning_rate: 1e-4
     num_layers: 3
     output_size: 27
@@ -17,4 +19,8 @@ large_batch:
     batch_size: 16
     num_batches: 2500
     learning_rate: 5e-4
-    epochs: 2
+    epochs: 1
+
+deep_nets:
+    <<: *default_params
+    num_layers: 4

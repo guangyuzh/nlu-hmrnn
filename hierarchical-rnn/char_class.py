@@ -1,12 +1,10 @@
-from hmlstm import HMLSTMNetwork, prepare_inputs, get_text, viz_char_boundaries
+from hmlstm import get_text, viz_char_boundaries
 from configuration import *
 
 
-batches_in, batches_out = prepare_inputs(batch_size=hparams.batch_size,
-                                         num_batches=hparams.num_batches,
-                                         truncate_len=hparams.truncate_len,
-                                         step_size=hparams.step_size,
-                                         text_path='text8.txt')
+hparams = select_config()
+batches_in, batches_out = hparams.pre_inputs('text8.txt')
+network = hparams.gen_network()
 
 network.train(batches_in[:-1], batches_out[:-1], save_vars_to_disk=True, 
               load_vars_from_disk=False, variable_path='./text8', epochs=hparams.epochs)

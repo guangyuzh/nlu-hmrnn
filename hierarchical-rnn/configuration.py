@@ -1,6 +1,7 @@
 from ruamel.yaml import YAML
 from tensorflow.contrib.training import HParams
-from hmlstm import HMLSTMNetwork
+import argparse
+from hmlstm import HMLSTMNetwork, prepare_inputs
 
 
 class YamlParams(HParams):
@@ -10,15 +11,30 @@ class YamlParams(HParams):
             for k, v in YAML().load(fp)[config_name].items():
                 self.add_hparam(k, v)
 
+    def pre_inputs(self, text_path):
+        if not text_path:
+            raise Exception("define text_path")
+        return prepare_inputs(batch_size=self.batch_size,
+                              num_batches=self.num_batches,
+                              truncate_len=self.truncate_len,
+                              step_size=self.step_size,
+                              text_path=text_path)
 
-# Parsing YAML configurations
-hparams = YamlParams('config.yml', 'default')
+    def gen_network(self):
+        return HMLSTMNetwork(output_size=self.output_size,
+                             input_size=self.input_size,
+                             num_layers=self.num_layers,
+                             embed_size=self.embed_size,
+                             out_hidden_size=self.out_hidden_size,
+                             hidden_state_sizes=self.hidden_state_sizes,
+                             learning_rate=self.learning_rate,
+                             task='classification')
 
-network = HMLSTMNetwork(output_size=hparams.output_size,
-                        input_size=hparams.input_size,
-                        num_layers=hparams.num_layers,
-                        embed_size=hparams.embed_size,
-                        out_hidden_size=hparams.out_hidden_size,
-                        hidden_state_sizes=hparams.hidden_state_sizes,
-                        learning_rate=hparams.learning_rate,
-                        task='classification')
+
+def select_config():
+    # Parsing YAML configurations
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', action='store', dest='config', default='default',
+                        help="select configuration type in config.yml")
+    options = parser.parse_args()
+    return YamlParams('config.yml', options.config)
