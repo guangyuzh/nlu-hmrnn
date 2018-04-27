@@ -237,7 +237,8 @@ class HMLSTMNetworkQa(object):
 
     def create_multicellLSTM(self):
         def lstm_cell(layer):
-            return tf.contrib.rnn.BasicLSTMCell(self._hidden_state_sizes[layer] // 2, state_is_tuple=False)
+            return tf.contrib.rnn.LSTMCell(self._hidden_state_sizes[layer] // 2, 
+                use_peepholes=True, state_is_tuple=False)
         stacked_lstm = tf.contrib.rnn.MultiRNNCell(
             [lstm_cell(l) for l in range(self._num_layers)], state_is_tuple=False)
         return stacked_lstm
