@@ -16,9 +16,9 @@ default: &default_params
 
 large_batch:
     <<: *default_params
-    batch_size: 16
+    batch_size: 10
     num_batches: 2500
-    learning_rate: 5e-4
+    learning_rate: 2e-4
     epochs: 1
 
 deep_nets:

@@ -9,7 +9,7 @@ def _rm_obsolete_pred(path):
 
 
 hparams = select_config()
-batches_in, batches_out = hparams.pre_inputs('../treebank/corpora/sentences.txt')
+batches_in, batches_out = hparams.pre_inputs('../treebank/corpora/sentences.txt', train=False)
 network = hparams.gen_network()
 
 path = "../treebank/"

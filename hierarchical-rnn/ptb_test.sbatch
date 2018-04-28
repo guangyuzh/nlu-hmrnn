@@ -13,4 +13,5 @@
 module purge
 module load tensorflow/python3.5/1.2.1 cuda/8.0.44
 
-python3 -u ptb_test.py > logs/ptb_test.log
+CONFIG="large_batch"
+python3 -u ptb_test.py --config $CONFIG > logs/ptb_test.log
