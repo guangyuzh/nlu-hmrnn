@@ -51,9 +51,9 @@ class EvaluateBoundary:
         try:
             with open("../hierarchical-rnn/loss.tmp", 'r') as f:
                 loss = float(f.read())
-            # os.remove("../hierarchical-rnn/loss.tmp")
         except:
             raise
+        os.remove("../hierarchical-rnn/loss.tmp")
         self.prec_recall_f1["bpc"] = loss
 
     def save_eval(self):

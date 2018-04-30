@@ -1,6 +1,6 @@
 default: &default_params
     # for Preparing data
-    batch_size: 20
+    batch_size: 15
     num_batches: 1500
     truncate_len: 1000
     step_size: 500
@@ -12,7 +12,7 @@ default: &default_params
     embed_size: 2048
     out_hidden_size: 1024
     hidden_state_sizes: 1024
-    epochs: 3
+    epochs: 2
 
 large_batch:
     <<: *default_params
@@ -22,5 +22,12 @@ large_batch:
     epochs: 1
 
 deep_nets:
+    # fail
     <<: *default_params
     num_layers: 4
+    batch_size: 10
+
+small_nets:
+    <<: *default_params
+    embed_size: 1024
+

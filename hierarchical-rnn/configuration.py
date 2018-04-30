@@ -14,12 +14,18 @@ class YamlParams(HParams):
     def pre_inputs(self, text_path, train=True):
         if not text_path:
             raise Exception("define text_path")
-        step_size = self.step_size if train else self.truncate_len
-        return prepare_inputs(batch_size=self.batch_size,
-                              num_batches=self.num_batches,
-                              truncate_len=self.truncate_len,
-                              step_size=step_size,
-                              text_path=text_path)
+        if train:
+            return prepare_inputs(batch_size=self.batch_size,
+                                  num_batches=self.num_batches,
+                                  truncate_len=self.truncate_len,
+                                  step_size=self.step_size,
+                                  text_path=text_path)
+        else:
+            return prepare_inputs(batch_size=1,
+                                  num_batches=None,
+                                  truncate_len=self.truncate_len,
+                                  step_size=self.truncate_len,
+                                  text_path=text_path)
 
     def gen_network(self):
         return HMLSTMNetwork(output_size=self.output_size,

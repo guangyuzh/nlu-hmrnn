@@ -13,7 +13,7 @@
 
 # configuration type to select in config.yml
 # if not defined, will use the default configuration
-CONFIG='large_batch'
+CONFIG='small_nets'
 
 
 # load required modules
