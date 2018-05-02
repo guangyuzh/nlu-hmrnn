@@ -30,4 +30,16 @@ deep_nets:
 small_nets:
     <<: *default_params
     embed_size: 1024
+    out_hidden_size: 512
+    hidden_state_sizes: 512
+
+small_trun_len:
+    <<: *default_params
+    embed_size: 1024
+    truncate_len: 500
+    step_size: 250
+
+less_layer:
+    <<: *default_params
+    num_layers: 2
 

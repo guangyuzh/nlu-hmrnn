@@ -9,6 +9,7 @@ text8.*
 *.meta
 *.png
 .idea/
+.ipynb_checkpoints/
 *.pkl
 *.tmp
 backup/

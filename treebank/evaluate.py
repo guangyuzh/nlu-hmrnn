@@ -7,7 +7,7 @@ import time, datetime
 import os
 
 
-class EvaluateBoundary:
+class EvaluateBoundary(object):
     """
     Metrics: precision/recall, F1
     Ground-truth: Penn Treebank
@@ -32,7 +32,7 @@ class EvaluateBoundary:
 
         return self.truth, self.pred_layers
 
-    def evaluate(self, average=None):
+    def evaluate(self, average=None, read_loss=True):
         """
         Evaluate predictions for each layer of (precision, recall, f1, support)
         :param average: same as http://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_fscore_support.html
@@ -45,7 +45,10 @@ class EvaluateBoundary:
                 self.truth[:len(self.pred_layers[l])], self.pred_layers[l], average=average)
             self.prec_recall_f1[l] = (precision, recall, f1, support)
 
-        self._read_loss()
+        if read_loss:
+            self._read_loss()
+        else:
+            return self.prec_recall_f1
 
     def _read_loss(self):
         try:
@@ -62,6 +65,7 @@ class EvaluateBoundary:
         pickle.dump(self.prec_recall_f1, open("eval_{}.pkl".format(timestamp), 'wb'))
 
 
-eval_label = EvaluateBoundary("corpora/boundaries.txt", "layer_*.txt")
-eval_label.evaluate()
-eval_label.save_eval()
+if __name__ == '__main__':
+    eval_label = EvaluateBoundary("corpora/boundaries.txt", "layer_*.txt")
+    eval_label.evaluate()
+    eval_label.save_eval()
