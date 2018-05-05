@@ -14,9 +14,9 @@ class YamlParams(HParams):
     def pre_inputs(self, text_path, train=True):
         if not text_path:
             raise Exception("define text_path")
+        if self.quick_dev:
+            self.num_batches = 3
         if train:
-            if self.quick_dev:
-                self.num_batches = 3
             return prepare_inputs(batch_size=self.batch_size,
                                   num_batches=self.num_batches,
                                   truncate_len=self.truncate_len,
