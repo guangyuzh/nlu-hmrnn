@@ -5,7 +5,7 @@ from tensorflow.python.ops import variable_scope as vs
 import tensorflow as tf
 import numpy as np
 import sys
-
+import time
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -354,16 +354,22 @@ class HMLSTMNetwork(object):
         else:
             self.load_variables(variable_path)
 
+        cur_step = 0
+        total_step = batches_in.shape[0]
+        startTime = None
         for epoch in range(epochs):
             print('Epoch %d' % epoch)
             for batch_in, batch_out in zip(batches_in, batches_out):
+                startTime = time.time()
                 ops = [optim, loss]
                 feed_dict = {
                     self.batch_in: np.swapaxes(batch_in, 0, 1),
                     self.batch_out: np.swapaxes(batch_out, 0, 1),
                 }
                 _, _loss = self._session.run(ops, feed_dict)
-                print('loss:', _loss)
+                cur_step += 1
+                print('step: %3d/%d, loss: %f, time: %.2fs' %
+                        (cur_step % total_step, total_step, _loss, time.time() - startTime))
 
         self.save_variables(variable_path)
 
