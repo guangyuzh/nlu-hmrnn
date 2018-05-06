@@ -403,6 +403,9 @@ class HMLSTMNetwork(object):
 
         # for computing loss/BPC only
         if return_loss:
+            # Since batch_size = 1 for test, batch[0] pick the first and the only one batch
+            # [batch[0][:-1, :]] preserves batch dimensions of:
+            #     [*batch_size*, num_timesteps, output_size]
             batch_in = np.array([batch[0][:-1, :]])
             batch_out = np.array([batch[0][1:, :]])
             feed_dict = {

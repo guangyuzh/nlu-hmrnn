@@ -22,7 +22,6 @@ large_batch:
     epochs: 1
 
 deep_nets:
-    # fail
     <<: *default_params
     num_layers: 4
     batch_size: 10
@@ -40,6 +39,16 @@ small_trun_len:
     step_size: 250
 
 less_layer:
+    # do not use it, not good for plotting
     <<: *default_params
     num_layers: 2
 
+quick_net:
+    <<: *default_params
+    batch_size: 5
+    num_batches: 1800
+
+small_lr:
+    # do not use it, cannot converge at low epoch
+    <<: *default_params
+    learning_rate: 0.5e-4
