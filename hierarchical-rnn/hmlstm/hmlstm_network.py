@@ -388,8 +388,8 @@ class HMLSTMNetwork(object):
         """
 
         batch = np.array(batch)
-        # optim and loss are for computing loss/BPC only
-        optim, loss, _, predictions = self._get_graph()
+        # loss is only for computing loss/BPC
+        _, loss, _, predictions = self._get_graph()
 
         self._load_vars(variable_path)
 
@@ -409,7 +409,7 @@ class HMLSTMNetwork(object):
                 self.batch_in: np.swapaxes(batch_in, 0, 1),
                 self.batch_out: np.swapaxes(batch_out, 0, 1),
             }
-            _, _loss = self._session.run([optim, loss], feed_dict)
+            _, _loss = self._session.run([_, loss], feed_dict)
             print('loss:', _loss)
             return np.swapaxes(_predictions, 0, 1), _loss
 

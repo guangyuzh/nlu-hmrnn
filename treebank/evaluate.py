@@ -33,11 +33,24 @@ class EvaluateBoundary(object):
         return self.truth, self.pred_layers
 
     def evaluate(self, average=None, read_loss=True):
-        """
-        Evaluate predictions for each layer of (precision, recall, f1, support)
+        """ Evaluate predictions for each layer of (precision, recall, f1, support), and BPC for LM
+
+        For example, for a 3-layer model, it outputs:
+        defaultdict(<class 'tuple'>, {
+            'bpc': int_val,
+            'layer_0_bound_filename': (
+                    array([precision_for_0, precision_for_1]),
+                    array([recall_for_0, recall_for_1]),
+                    array([f1_for_0, f1_for_1]),
+                    array([support_for_0, support_for_1])
+                ),
+            'layer_1_bound_filename': (...),
+            'layer_2_bound_filename': (...)
+        }
         :param average: same as http://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_fscore_support.html
-        :return: a dictionary with layer as key, (precision, recall, f1, support) as value
-                (each element contains two values for (1, 0))
+        :return: a dictionary with 1. layer as key, (precision, recall, f1, support) as value
+                    (each element contains two values for (0, 1));
+                 2. 'bpc' as key, and its bpc score
         """
         self.prec_recall_f1 = defaultdict(tuple)
         for l, layer_pred in self.pred_layers.items():
