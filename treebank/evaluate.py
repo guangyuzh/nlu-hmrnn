@@ -63,12 +63,12 @@ class EvaluateBoundary(object):
         self.prec_recall_f1["bpc"] = loss
 
     def save_eval(self, name=None):
-        print(self.prec_recall_f1)
-        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%m-%d-%H%M%S')
+        # print(self.prec_recall_f1)
         if name == None:        
-            pickle.dump(self.prec_recall_f1, open(self.pickle_path + "/eval_{}.pkl".format(timestamp), 'wb'))
+            timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%m-%d-%H%M%S')
+            pickle.dump(self.prec_recall_f1, open(self.pickle_path + "eval_{}.pkl".format(timestamp), 'wb'))
         else:
-            pickle.dump(self.prec_recall_f1, open(self.pickle_path + "/" + name, 'wb'))
+            pickle.dump(self.prec_recall_f1, open(self.pickle_path + name, 'wb'))
 
 if __name__ == '__main__':
     eval_label = EvaluateBoundary("corpora/boundaries.txt", "layer_*.txt")

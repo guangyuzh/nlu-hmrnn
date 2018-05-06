@@ -1,10 +1,14 @@
 from .hmlstm_cell import HMLSTMCell, HMLSTMState
 from .multi_hmlstm_cell import MultiHMLSTMCell
+from .preprocessing import get_text
+from .viz import save_boundaries
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import variable_scope as vs
 from os.path import dirname as dir
+import glob
 import tensorflow as tf
 import numpy as np
+import os
 import sys
 import time
 
@@ -499,15 +503,16 @@ class HMLSTMNetwork(object):
         return _loss, np.array(_indicators), np.swapaxes(_predictions, 0, 1)
 
     def _validate(self, batches, iter_num, truth_file='../treebank/corpora/boundaries.txt'):
-        boundary_dir = "./log/boundaries"
-        loss_file = "./log/loss.tmp"
-        pickle_path = "./log/pickle"
+        boundary_dir = "./logs/boundaries/"
+        loss_file = "./logs/loss.tmp"
+        pickle_path = "./logs/pickle/"
         # remove old boundary indicator information
         self._rm_obsolete_pred(boundary_dir)
 
         # forward pass
         tot_loss = 0
         for batch in batches:
+            print("batch.shape: {}".format(np.array(batch).shape))
             loss, boundaries, predictions = self.forward_pass(batch)
             tot_loss += loss
             # only one sample in each batch.
@@ -526,7 +531,7 @@ class HMLSTMNetwork(object):
 
         # evaluate F1 score e.t.c...
         eval_label = EvaluateBoundary(file_truth=truth_file,
-                                      file_layers_predict=boundary_dir + '/layer_*.txt',
+                                      file_layers_predict=boundary_dir + 'layer_*.txt',
                                       loss_file=loss_file,
                                       pickle_path=pickle_path)
         prec_recall_f1 = eval_label.evaluate()

@@ -24,8 +24,11 @@ class YamlParams(HParams):
                                   step_size=self.step_size,
                                   text_path=text_path)
         else:
+            num_batches = None
+            if self.quick_dev:
+                num_batches = 3
             return prepare_inputs(batch_size=1,
-                                  num_batches=None,
+                                  num_batches=num_batches,
                                   truncate_len=self.truncate_len,
                                   step_size=self.truncate_len,
                                   text_path=text_path)
