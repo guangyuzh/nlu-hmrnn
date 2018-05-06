@@ -16,6 +16,7 @@ class YamlParams(HParams):
             raise Exception("define text_path")
         if self.quick_dev:
             self.num_batches = 3
+            self.valid_after_step = 1
         if train:
             return prepare_inputs(batch_size=self.batch_size,
                                   num_batches=self.num_batches,

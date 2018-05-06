@@ -12,9 +12,13 @@ class EvaluateBoundary(object):
     Metrics: precision/recall, F1
     Ground-truth: Penn Treebank
     """
-    def __init__(self, file_truth, file_layers_predict):
+    def __init__(self, file_truth, file_layers_predict, 
+                 loss_file='../hierarchical-rnn/loss.tmp', 
+                 pickle_path='.'):
         self.file_truth = file_truth
         self.file_layers_predict = file_layers_predict
+        self.loss_file = loss_file
+        self.pickle_path=pickle_path
         self._get_labels()
 
     def _get_labels(self):
@@ -47,23 +51,24 @@ class EvaluateBoundary(object):
 
         if read_loss:
             self._read_loss()
-        else:
-            return self.prec_recall_f1
+        return self.prec_recall_f1
 
     def _read_loss(self):
         try:
-            with open("../hierarchical-rnn/loss.tmp", 'r') as f:
+            with open(self.loss_file, 'r') as f:
                 loss = float(f.read())
         except:
             raise
-        os.remove("../hierarchical-rnn/loss.tmp")
+        os.remove(self.loss_file)
         self.prec_recall_f1["bpc"] = loss
 
-    def save_eval(self):
+    def save_eval(self, name=None):
         print(self.prec_recall_f1)
         timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%m-%d-%H%M%S')
-        pickle.dump(self.prec_recall_f1, open("eval_{}.pkl".format(timestamp), 'wb'))
-
+        if name == None:        
+            pickle.dump(self.prec_recall_f1, open(self.pickle_path + "/eval_{}.pkl".format(timestamp), 'wb'))
+        else:
+            pickle.dump(self.prec_recall_f1, open(self.pickle_path + "/" + name, 'wb'))
 
 if __name__ == '__main__':
     eval_label = EvaluateBoundary("corpora/boundaries.txt", "layer_*.txt")
