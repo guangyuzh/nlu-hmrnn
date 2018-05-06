@@ -355,7 +355,7 @@ class HMLSTMNetwork(object):
             self.load_variables(variable_path)
 
         cur_step = 0
-        total_step = batches_in.shape[0]
+        total_step = len(batches_in)
         startTime = None
         for epoch in range(epochs):
             print('Epoch %d' % epoch)
@@ -367,9 +367,9 @@ class HMLSTMNetwork(object):
                     self.batch_out: np.swapaxes(batch_out, 0, 1),
                 }
                 _, _loss = self._session.run(ops, feed_dict)
-                cur_step += 1
                 print('step: %3d/%d, loss: %f, time: %.2fs' %
-                        (cur_step % total_step, total_step, _loss, time.time() - startTime))
+                        (cur_step % total_step + 1, total_step, _loss, time.time() - startTime))
+                cur_step += 1
 
         self.save_variables(variable_path)
 
