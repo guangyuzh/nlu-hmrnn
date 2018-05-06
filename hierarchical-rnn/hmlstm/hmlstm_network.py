@@ -506,13 +506,14 @@ class HMLSTMNetwork(object):
         boundary_dir = "./logs/boundaries/"
         loss_file = "./logs/loss.tmp"
         pickle_path = "./logs/pickle/"
+        
         # remove old boundary indicator information
         self._rm_obsolete_pred(boundary_dir)
 
         # forward pass
+        start_time = time.time()
         tot_loss = 0
         for batch in batches:
-            print("batch.shape: {}".format(np.array(batch).shape))
             loss, boundaries, predictions = self.forward_pass(batch)
             tot_loss += loss
             # only one sample in each batch.
@@ -536,6 +537,7 @@ class HMLSTMNetwork(object):
                                       pickle_path=pickle_path)
         prec_recall_f1 = eval_label.evaluate()
         print("validation result: {}".format(prec_recall_f1))
+        print("validation time: %.2fs" % (time.time() - start_time))
         eval_label.save_eval(name="eval_{}.pkl".format(iter_num))
 
     def _rm_obsolete_pred(self, path):

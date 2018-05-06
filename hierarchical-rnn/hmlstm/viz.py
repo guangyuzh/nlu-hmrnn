@@ -70,7 +70,7 @@ def save_boundaries(truth, predictions, indicators, layers,
     end = row_len
     layer_bounds = defaultdict(str)
     verbose = ""
-    print("Start saving predicted boundaries")
+    # print("Start saving predicted boundaries")
     while start < len(truth):
         for i, l in enumerate(reversed(indicators)):
             if i in layers:
@@ -86,4 +86,4 @@ def save_boundaries(truth, predictions, indicators, layers,
             f.write(v)
     with open(path + "compare.txt", 'a') as f:
         f.write(verbose)
-    print("Finished saving one batch")
+    # print("Finished saving one batch")

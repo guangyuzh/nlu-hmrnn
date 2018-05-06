@@ -13,7 +13,7 @@ default: &default_params
     out_hidden_size: 1024
     hidden_state_sizes: 1024
     epochs: 2
-    quick_dev: true
+    quick_dev: false
     valid_after_step: 100
 
 large_batch:
