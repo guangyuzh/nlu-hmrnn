@@ -14,6 +14,9 @@ def text(text_path, truncate_len, step_size, batch_size, num_chars=None):
 
 def load_text(text_path, truncate_len, step_size, batch_size, num_chars):
     with open(text_path, 'r') as f:
+        # read one more character to ensure outtext is not out of boudary
+        if num_chars != None:
+            num_chars += 1
         text = f.read(num_chars)
         text = text.replace('\n', ' ')
         text = re.sub(' +', ' ', text).lower()
