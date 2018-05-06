@@ -2,6 +2,7 @@ from .hmlstm_cell import HMLSTMCell, HMLSTMState
 from .multi_hmlstm_cell import MultiHMLSTMCell
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import variable_scope as vs
+from os.path import dirname as dir
 import tensorflow as tf
 import numpy as np
 import sys
@@ -324,7 +325,9 @@ class HMLSTMNetwork(object):
               variable_path='./hmlstm_ckpt',
               load_vars_from_disk=False,
               save_vars_to_disk=False,
-              epochs=3):
+              epochs=3,
+              batches_valid=None,
+              valid_after_step=-1):
         """
         Train the network.
 
@@ -370,7 +373,8 @@ class HMLSTMNetwork(object):
                 print('step: %3d/%d, loss: %f, time: %.2fs' %
                         (cur_step % total_step + 1, total_step, _loss, time.time() - startTime))
                 cur_step += 1
-
+                if batches_valid != None and cur_step % valid_after_step == 0:
+                    self._validate(batches_valid, cur_step)
         self.save_variables(variable_path)
 
     def predict(self, batch, variable_path='./hmlstm_ckpt',
@@ -457,6 +461,81 @@ class HMLSTMNetwork(object):
         })
 
         return np.array(_indicators)
+
+    def forward_pass(self, batch, variable_path='./hmlstm_ckpt'):
+        """
+        Similar to predict() and predict_boundaries().
+        Return loss, boudary and prediction.
+
+        params:
+        ---
+        batch: batch for which to make predictions. should have dimensions
+            [batch_size, num_timesteps, output_size]
+        variable_path: string. If there is no active session in the network
+            object (i.e. it has not yet been used to train or predict, or the
+            tensorflow session has been manually closed), variables will be
+            loaded from the provided path. Otherwise variables already present
+            in the session will be used.
+
+        returns:
+        ---
+        loss:           scaler
+        indicators:     [Batch_size, Layer, Timestep]
+        predictions:    [Batch_size, Timestep, output_size]
+        """
+        batch = np.array(batch)
+        _, loss, indicators, predictions = self._get_graph()
+
+        self._load_vars(variable_path)
+
+        # batch_out is not used for prediction, but needs to be fed in
+        batch_out_size = (batch.shape[1], batch.shape[0], self._output_size)
+        ops = [loss, indicators, predictions]
+        _loss, _indicators, _predictions = self._session.run(ops, {
+            self.batch_in: np.swapaxes(batch, 0, 1),
+            self.batch_out: np.zeros(batch_out_size),
+        })
+        # loss: scal
+        return _loss, np.array(_indicators), np.swapaxes(_predictions, 0, 1)
+
+    def _validate(self, batches, iter_num, truth_file='../treebank/corpora/boundaries.txt'):
+        boundary_dir = "./log/boundaries"
+        loss_file = "./log/loss.tmp"
+        pickle_path = "./log/pickle"
+        # remove old boundary indicator information
+        self._rm_obsolete_pred(boundary_dir)
+
+        # forward pass
+        tot_loss = 0
+        for batch in batches:
+            loss, boundaries, predictions = self.forward_pass(batch)
+            tot_loss += loss
+            # only one sample in each batch.
+            save_boundaries(get_text(batch[0]), get_text(predictions[0]), boundaries[0],
+                    layers=[i for i in range(self._num_layers)], path=boundary_dir)
+        
+        # calculate and save average loss
+        avg_loss = tot_loss / len(batches)
+        with open(loss_file, 'w') as f:
+            f.write(str(avg_loss))
+
+        # import package treebank
+        sys.path.append(dir(sys.path[0]))
+        __package__ = "treebank"
+        from treebank.evaluate import EvaluateBoundary
+
+        # evaluate F1 score e.t.c...
+        eval_label = EvaluateBoundary(file_truth=truth_file,
+                                      file_layers_predict=boundary_dir + '/layer_*.txt',
+                                      loss_file=loss_file,
+                                      pickle_path=pickle_path)
+        prec_recall_f1 = eval_label.evaluate()
+        print("validation result: {}".format(prec_recall_f1))
+        eval_label.save_eval(name="eval_{}.pkl".format(iter_num))
+
+    def _rm_obsolete_pred(self, path):
+        for f in glob.glob(path + "*.txt"):
+            os.remove(f)
 
     def _get_graph(self):
         if self._graph is None:
