@@ -18,4 +18,5 @@ CONFIG='quick_net'
 module purge
 module load tensorflow/python3.5/1.2.1 cuda/8.0.44
 
+rm logs/pickle/*.pkl
 python3 -u lm_valid.py --config $CONFIG > logs/lm_valid.log

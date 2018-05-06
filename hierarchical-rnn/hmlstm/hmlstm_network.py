@@ -330,7 +330,8 @@ class HMLSTMNetwork(object):
               load_vars_from_disk=False,
               save_vars_to_disk=False,
               epochs=3,
-              batches_valid=None,
+              valid_batches_in=None,
+              valid_batches_out=None,
               valid_after_step=-1):
         """
         Train the network.
@@ -377,8 +378,8 @@ class HMLSTMNetwork(object):
                 print('step: %3d/%d, loss: %f, time: %.2fs' %
                         (cur_step % total_step + 1, total_step, _loss, time.time() - startTime))
                 cur_step += 1
-                if batches_valid != None and cur_step % valid_after_step == 0:
-                    self._validate(batches_valid, cur_step)
+                if valid_batches_in != None and valid_batches_out != None and cur_step % valid_after_step == 0:
+                    self._validate(valid_batches_in, valid_batches_out, cur_step)
         self.save_variables(variable_path)
 
     def predict(self, batch, variable_path='./hmlstm_ckpt',
@@ -466,14 +467,14 @@ class HMLSTMNetwork(object):
 
         return np.array(_indicators)
 
-    def forward_pass(self, batch, variable_path='./hmlstm_ckpt'):
+    def forward_pass(self, batch_in, batch_out, variable_path='./hmlstm_ckpt'):
         """
         Similar to predict() and predict_boundaries().
         Return loss, boudary and prediction.
 
         params:
         ---
-        batch: batch for which to make predictions. should have dimensions
+        batch_in: batch for which to make predictions. should have dimensions
             [batch_size, num_timesteps, output_size]
         variable_path: string. If there is no active session in the network
             object (i.e. it has not yet been used to train or predict, or the
@@ -487,22 +488,21 @@ class HMLSTMNetwork(object):
         indicators:     [Batch_size, Layer, Timestep]
         predictions:    [Batch_size, Timestep, output_size]
         """
-        batch = np.array(batch)
+        batch_in = np.array(batch_in)
+        batch_out = np.array(batch_out)
         _, loss, indicators, predictions = self._get_graph()
 
         self._load_vars(variable_path)
 
-        # batch_out is not used for prediction, but needs to be fed in
-        batch_out_size = (batch.shape[1], batch.shape[0], self._output_size)
         ops = [loss, indicators, predictions]
         _loss, _indicators, _predictions = self._session.run(ops, {
-            self.batch_in: np.swapaxes(batch, 0, 1),
-            self.batch_out: np.zeros(batch_out_size),
+            self.batch_in: np.swapaxes(batch_in, 0, 1),
+            self.batch_out: np.swapaxes(batch_out, 0, 1),
         })
-        # loss: scal
+        # loss: scaler
         return _loss, np.array(_indicators), np.swapaxes(_predictions, 0, 1)
 
-    def _validate(self, batches, iter_num, truth_file='../treebank/corpora/boundaries.txt'):
+    def _validate(self, batches_in, batches_out, iter_num, truth_file='../treebank/corpora/boundaries.txt'):
         boundary_dir = "./logs/boundaries/"
         loss_file = "./logs/loss.tmp"
         pickle_path = "./logs/pickle/"
@@ -513,15 +513,15 @@ class HMLSTMNetwork(object):
         # forward pass
         start_time = time.time()
         tot_loss = 0
-        for batch in batches:
-            loss, boundaries, predictions = self.forward_pass(batch)
+        for batch_in, batch_out in zip(batches_in, batches_out):
+            loss, boundaries, predictions = self.forward_pass(batch_in, batch_out)
             tot_loss += loss
             # only one sample in each batch.
-            save_boundaries(get_text(batch[0]), get_text(predictions[0]), boundaries[0],
+            save_boundaries(get_text(batch_in[0]), get_text(predictions[0]), boundaries[0],
                     layers=[i for i in range(self._num_layers)], path=boundary_dir)
         
         # calculate and save average loss
-        avg_loss = tot_loss / len(batches)
+        avg_loss = tot_loss / len(batches_in)
         with open(loss_file, 'w') as f:
             f.write(str(avg_loss))
 
