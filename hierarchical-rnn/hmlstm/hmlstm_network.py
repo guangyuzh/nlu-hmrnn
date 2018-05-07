@@ -342,6 +342,8 @@ class HMLSTMNetwork(object):
               epochs=3,
               val_batches_in=None,
               val_batches_out=None,
+              ptb_batches_in=None,
+              ptb_batches_out=None,
               val_after_step=-1):
         """
         Train the network.
@@ -389,7 +391,8 @@ class HMLSTMNetwork(object):
                         (cur_step % total_step + 1, total_step, _loss, time.time() - startTime))
                 cur_step += 1
                 if val_batches_in != None and val_batches_out != None and cur_step % val_after_step == 0:
-                    val_loss = self._validate(val_batches_in, val_batches_out, cur_step)
+                    val_loss = self._validate(val_batches_in, val_batches_out,
+                                              ptb_batches_in, ptb_batches_out, cur_step)
                     self._early_stopping(val_loss)
 
     def predict(self, batch, variable_path='./hmlstm_ckpt',
@@ -512,9 +515,9 @@ class HMLSTMNetwork(object):
         # loss: scaler
         return _loss, np.array(_indicators), np.swapaxes(_predictions, 0, 1)
 
-    def _validate(self, val_batches_in, val_batches_out, iter_num,
+    def _validate(self, val_batches_in, val_batches_out,
                   ptb_batches_in, ptb_batches_out,
-                  truth_file='../treebank/corpora/boundaries.txt'):
+                  iter_num, truth_file='../treebank/corpora/boundaries.txt'):
         # forward pass to validate
         start_time = time.time()
         tot_val_loss = 0

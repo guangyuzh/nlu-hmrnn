@@ -18,6 +18,26 @@ default: &default_params
     # for saving boundary, pickle and parameter file
     output_dir: './output/'
 
+default: &paper_default
+    # for Preparing data
+    batch_size: 128
+    num_batches: 1700
+    truncate_len: 100
+    step_size: 50
+    # for HM-LSTM nets
+    learning_rate: 1e-3
+    num_layers: 3
+    output_size: 27
+    input_size: 27
+    embed_size: 2048
+    out_hidden_size: 1024
+    hidden_state_sizes: 1024
+    epochs: 2
+    quick_dev: false
+    valid_after_step: 100
+    # for saving boundary, pickle and parameter file
+    output_dir: './output/'
+
 large_batch:
     <<: *default_params
     batch_size: 10
