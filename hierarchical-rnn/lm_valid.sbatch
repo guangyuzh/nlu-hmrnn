@@ -13,9 +13,9 @@
 # configuration type to select in config.yml
 # if not defined, will use the default configuration
 CONFIG='quick_net'
+START_TIME="$(date +"%m-%d_%H-%M-%S")"
 
 module purge
 module load tensorflow/python3.5/1.2.1 cuda/8.0.44
 
-rm logs/pickle/*.pkl
-python3 -u lm_valid.py --config $CONFIG > logs/lm_valid.log
+python3 -u lm_valid.py --config $CONFIG > logs/lm_valid_$START_TIME.log
