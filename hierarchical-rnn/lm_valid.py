@@ -9,5 +9,5 @@ network = hparams.gen_network()
 
 network.train(batches_in[:-1], batches_out[:-1], save_vars_to_disk=True, 
               load_vars_from_disk=False, variable_path=hparams.output_dir + 'text8', epochs=hparams.epochs,
-              valid_batches_in=batches_in[-1:], valid_batches_out=batches_out[-1:],
-              valid_after_step=hparams.valid_after_step)
+              val_batches_in=batches_in[-1:], val_batches_out=batches_out[-1:],
+              val_after_step=hparams.valid_after_step)

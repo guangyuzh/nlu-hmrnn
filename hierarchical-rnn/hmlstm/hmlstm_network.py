@@ -71,6 +71,11 @@ class HMLSTMNetwork(object):
         self._pickle_dir = self._output_dir + 'pickle/'
         self._initialize_output_dir()
 
+        self._default_patience = 5
+        self._patience = self._default_patience
+        # a default big enough loss
+        self._best_val_loss = 10.0
+
         if type(hidden_state_sizes) is list \
             and len(hidden_state_sizes) != num_layers:
             raise ValueError('The number of hidden states provided must be the'
@@ -135,7 +140,7 @@ class HMLSTMNetwork(object):
 
     def save_variables(self, path='./hmlstm_ckpt'):
         saver = tf.train.Saver()
-        print('saving variables...')
+        print('saving variables to path {}...'.format(path))
         saver.save(self._session, path)
 
     def gate_input(self, hidden_states):
@@ -335,9 +340,9 @@ class HMLSTMNetwork(object):
               load_vars_from_disk=False,
               save_vars_to_disk=False,
               epochs=3,
-              valid_batches_in=None,
-              valid_batches_out=None,
-              valid_after_step=-1):
+              val_batches_in=None,
+              val_batches_out=None,
+              val_after_step=-1):
         """
         Train the network.
 
@@ -383,9 +388,9 @@ class HMLSTMNetwork(object):
                 print('step: %3d/%d, loss: %f, time: %.2fs' %
                         (cur_step % total_step + 1, total_step, _loss, time.time() - startTime))
                 cur_step += 1
-                if valid_batches_in != None and valid_batches_out != None and cur_step % valid_after_step == 0:
-                    self._validate(valid_batches_in, valid_batches_out, cur_step)
-        self.save_variables(variable_path)
+                if val_batches_in != None and val_batches_out != None and cur_step % val_after_step == 0:
+                    val_loss = self._validate(val_batches_in, val_batches_out, cur_step)
+                    self._early_stopping(val_loss)
 
     def predict(self, batch, variable_path='./hmlstm_ckpt',
                 return_gradients=False, return_loss=False):
@@ -507,22 +512,37 @@ class HMLSTMNetwork(object):
         # loss: scaler
         return _loss, np.array(_indicators), np.swapaxes(_predictions, 0, 1)
 
-    def _validate(self, batches_in, batches_out, iter_num, truth_file='../treebank/corpora/boundaries.txt'):
+    def _validate(self, val_batches_in, val_batches_out, iter_num,
+                  ptb_batches_in, ptb_batches_out,
+                  truth_file='../treebank/corpora/boundaries.txt'):
+        # forward pass to validate
+        start_time = time.time()
+        tot_val_loss = 0
+        for batch_in, batch_out in zip(val_batches_in, val_batches_out):
+            loss, _, _ = self.forward_pass(batch_in, batch_out)
+            tot_val_loss += loss
+        
+        # calculate average validation loss, to be returned later
+        avg_val_loss = tot_val_loss / len(val_batches_in)  
+        print('****** Validate on %d batch, loss: %f, time: %.2fs ******' %
+                (len(val_batches_in), avg_val_loss, time.time() - start_time))
+
+        # validate on PTB data
         # remove old boundary indicator information
         self._rm_obsolete_pred(self._boundary_dir)
 
         # forward pass
         start_time = time.time()
-        tot_loss = 0
-        for batch_in, batch_out in zip(batches_in, batches_out):
+        tot_ptb_loss = 0
+        for batch_in, batch_out in zip(ptb_batches_in, ptb_batches_out):
             loss, boundaries, predictions = self.forward_pass(batch_in, batch_out)
-            tot_loss += loss
+            tot_ptb_loss += loss
             # only one sample in each batch.
             save_boundaries(get_text(batch_in[0]), get_text(predictions[0]), boundaries[0],
                     layers=[i for i in range(self._num_layers)], path=self._boundary_dir)
         
         # calculate and save average loss
-        avg_loss = tot_loss / len(batches_in)
+        avg_ptb_loss = tot_ptb_loss / len(ptb_batches_in)
 
         # import package treebank
         sys.path.append(dir(sys.path[0]))
@@ -535,9 +555,25 @@ class HMLSTMNetwork(object):
                                       pickle_path=self._pickle_dir)
         prec_recall_f1 = eval_label.evaluate(read_loss=False)
         prec_recall_f1["bpc"] = avg_loss
-        print("validation result: {}".format(prec_recall_f1))
-        print("validation time: %.2fs" % (time.time() - start_time))
+        print("****** PTB valid result: {} ******".format(prec_recall_f1))
+        print("****** PTB valid time: %.2fs ******" % (time.time() - start_time))
         eval_label.save_eval(name="eval_{}.pkl".format(iter_num))
+
+        return avg_val_loss
+
+    def _early_stopping(self, val_loss):
+        if val_loss < self._best_val_loss:
+            self._patience = self._default_patience
+            self._best_val_loss = val_loss
+            # save model
+            variable_name = "hmlstm-val_acc-{:.4f}.models".format(self.val_loss)
+            self.save_variables(os.path.join(self._output_dir, variable_name))
+        elif self._patience == 1:
+            print("Out of patience, stop training.")
+            exit(0)
+        else:
+            self._patience -= 1
+            print("Remaining/Patience : {}/{}".format(self._patience, self._default_patience))
 
     def _rm_obsolete_pred(self, path):
         for f in glob.glob(path + "*.txt"):
