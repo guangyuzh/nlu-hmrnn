@@ -10,6 +10,7 @@ class YamlParams(HParams):
         with open(yaml_fn) as fp:
             for k, v in YAML().load(fp)[config_name].items():
                 self.add_hparam(k, v)
+                print("{}: {}".format(k, v))
 
     def pre_inputs(self, text_path, train=True):
         if not text_path:
@@ -41,7 +42,8 @@ class YamlParams(HParams):
                              out_hidden_size=self.out_hidden_size,
                              hidden_state_sizes=self.hidden_state_sizes,
                              learning_rate=self.learning_rate,
-                             task='classification')
+                             task='classification',
+                             output_dir=self.output_dir)
 
 
 def select_config():

@@ -9,6 +9,7 @@ import glob
 import tensorflow as tf
 import numpy as np
 import os
+import shutil
 import sys
 import time
 
@@ -26,7 +27,6 @@ class Unbuffered(object):
 
 sys.stdout = Unbuffered(sys.stdout)
 
-
 class HMLSTMNetwork(object):
     def __init__(self,
                  input_size=1,
@@ -36,7 +36,8 @@ class HMLSTMNetwork(object):
                  out_hidden_size=100,
                  embed_size=100,
                  learning_rate=1e-4,
-                 task='regression'):
+                 task='regression',
+                 output_dir='./output/'):
         """
         HMLSTMNetwork is a class representing hierarchical multiscale
         long short-term memory network.
@@ -65,6 +66,10 @@ class HMLSTMNetwork(object):
         self._graph = None
         self._task = task
         self._output_size = output_size
+        self._output_dir = output_dir
+        self._boundary_dir = self._output_dir + 'boundaries/'
+        self._pickle_dir = self._output_dir + 'pickle/'
+        self._initialize_output_dir()
 
         if type(hidden_state_sizes) is list \
             and len(hidden_state_sizes) != num_layers:
@@ -503,11 +508,8 @@ class HMLSTMNetwork(object):
         return _loss, np.array(_indicators), np.swapaxes(_predictions, 0, 1)
 
     def _validate(self, batches_in, batches_out, iter_num, truth_file='../treebank/corpora/boundaries.txt'):
-        boundary_dir = "./logs/boundaries/"
-        pickle_path = "./logs/pickle/"
-        
         # remove old boundary indicator information
-        self._rm_obsolete_pred(boundary_dir)
+        self._rm_obsolete_pred(self._boundary_dir)
 
         # forward pass
         start_time = time.time()
@@ -517,7 +519,7 @@ class HMLSTMNetwork(object):
             tot_loss += loss
             # only one sample in each batch.
             save_boundaries(get_text(batch_in[0]), get_text(predictions[0]), boundaries[0],
-                    layers=[i for i in range(self._num_layers)], path=boundary_dir)
+                    layers=[i for i in range(self._num_layers)], path=self._boundary_dir)
         
         # calculate and save average loss
         avg_loss = tot_loss / len(batches_in)
@@ -529,8 +531,8 @@ class HMLSTMNetwork(object):
 
         # evaluate F1 score, precision, recall.
         eval_label = EvaluateBoundary(file_truth=truth_file,
-                                      file_layers_predict=boundary_dir + 'layer_*.txt',
-                                      pickle_path=pickle_path)
+                                      file_layers_predict=self._boundary_dir + 'layer_*.txt',
+                                      pickle_path=self._pickle_dir)
         prec_recall_f1 = eval_label.evaluate(read_loss=False)
         prec_recall_f1["bpc"] = avg_loss
         print("validation result: {}".format(prec_recall_f1))
@@ -540,6 +542,15 @@ class HMLSTMNetwork(object):
     def _rm_obsolete_pred(self, path):
         for f in glob.glob(path + "*.txt"):
             os.remove(f)
+
+    def _initialize_output_dir(self):
+        if os.path.exists(self._output_dir):
+            # remove output directory if exisits
+            print('Removing existing output directory with path: {}'.format(self._output_dir))
+            shutil.rmtree(self._output_dir)
+        os.makedirs(self._output_dir)
+        os.makedirs(self._boundary_dir)
+        os.makedirs(self._pickle_dir)
 
     def _get_graph(self):
         if self._graph is None:
