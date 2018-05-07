@@ -504,7 +504,6 @@ class HMLSTMNetwork(object):
 
     def _validate(self, batches_in, batches_out, iter_num, truth_file='../treebank/corpora/boundaries.txt'):
         boundary_dir = "./logs/boundaries/"
-        loss_file = "./logs/loss.tmp"
         pickle_path = "./logs/pickle/"
         
         # remove old boundary indicator information
@@ -522,20 +521,18 @@ class HMLSTMNetwork(object):
         
         # calculate and save average loss
         avg_loss = tot_loss / len(batches_in)
-        with open(loss_file, 'w') as f:
-            f.write(str(avg_loss))
 
         # import package treebank
         sys.path.append(dir(sys.path[0]))
         __package__ = "treebank"
         from treebank.evaluate import EvaluateBoundary
 
-        # evaluate F1 score e.t.c...
+        # evaluate F1 score, precision, recall.
         eval_label = EvaluateBoundary(file_truth=truth_file,
                                       file_layers_predict=boundary_dir + 'layer_*.txt',
-                                      loss_file=loss_file,
                                       pickle_path=pickle_path)
-        prec_recall_f1 = eval_label.evaluate()
+        prec_recall_f1 = eval_label.evaluate(read_loss=False)
+        prec_recall_f1["bpc"] = avg_loss
         print("validation result: {}".format(prec_recall_f1))
         print("validation time: %.2fs" % (time.time() - start_time))
         eval_label.save_eval(name="eval_{}.pkl".format(iter_num))
