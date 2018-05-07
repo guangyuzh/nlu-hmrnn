@@ -12,7 +12,7 @@
 
 # configuration type to select in config.yml
 # if not defined, will use the default configuration
-CONFIG='quick_net'
+CONFIG='paper_default'
 START_TIME="$(date +"%m-%d_%H-%M-%S")"
 
 module purge
