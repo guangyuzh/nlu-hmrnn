@@ -18,6 +18,7 @@ class YamlParams(HParams):
         if self.quick_dev:
             self.num_batches = 3
             self.valid_after_step = 1
+            self.output_dir = './quickdev_output/'
         if train:
             return prepare_inputs(batch_size=self.batch_size,
                                   num_batches=self.num_batches,
@@ -25,7 +26,7 @@ class YamlParams(HParams):
                                   step_size=self.step_size,
                                   text_path=text_path)
         else:
-            num_batches = None
+            num_batches = 500
             if self.quick_dev:
                 num_batches = 3
             return prepare_inputs(batch_size=1,

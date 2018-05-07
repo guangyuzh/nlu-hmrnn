@@ -18,12 +18,12 @@ default: &default_params
     # for saving boundary, pickle and parameter file
     output_dir: './output/'
 
-default: &paper_default
+paper_default:
     # for Preparing data
     batch_size: 128
     num_batches: 1700
     truncate_len: 100
-    step_size: 50
+    step_size: 100
     # for HM-LSTM nets
     learning_rate: 1e-3
     num_layers: 3
@@ -36,7 +36,7 @@ default: &paper_default
     quick_dev: false
     valid_after_step: 100
     # for saving boundary, pickle and parameter file
-    output_dir: './output/'
+    output_dir: './output2/'
 
 large_batch:
     <<: *default_params

@@ -557,9 +557,12 @@ class HMLSTMNetwork(object):
                                       file_layers_predict=self._boundary_dir + 'layer_*.txt',
                                       pickle_path=self._pickle_dir)
         prec_recall_f1 = eval_label.evaluate(read_loss=False)
-        prec_recall_f1["bpc"] = avg_loss
-        print("****** PTB valid result: {} ******".format(prec_recall_f1))
-        print("****** PTB valid time: %.2fs ******" % (time.time() - start_time))
+        prec_recall_f1["bpc"] = avg_ptb_loss
+        prec_recall_f1["val_loss"] = avg_val_loss
+        print("****** Validate on PTB %d batches, time: %.2fs, result:" %
+                (len(ptb_batches_in), time.time() - start_time))
+        for k, v in prec_recall_f1.items():
+            print("    {}: {}".format(k, v))
         eval_label.save_eval(name="eval_{}.pkl".format(iter_num))
 
         return avg_val_loss
@@ -569,7 +572,7 @@ class HMLSTMNetwork(object):
             self._patience = self._default_patience
             self._best_val_loss = val_loss
             # save model
-            variable_name = "hmlstm-val_acc-{:.4f}.models".format(self.val_loss)
+            variable_name = "hmlstm-val_acc-{:.4f}.models".format(val_loss)
             self.save_variables(os.path.join(self._output_dir, variable_name))
         elif self._patience == 1:
             print("Out of patience, stop training.")
